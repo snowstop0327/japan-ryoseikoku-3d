@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+}
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Noto Sans TC', sans-serif;
+    background-color: #86b4bb;
+}
+.font-serif-jp {
+    font-family: 'Noto Serif TC', serif;
+}
+
+/* 3D Canvas Container */
+#canvas-container {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+}
+
+/* HEART Policy Island Warm Cream Glass Aesthetics */
+.cream-card {
+    background: rgba(251, 248, 243, 0.96);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(226, 217, 203, 0.95);
+    box-shadow: 0 12px 32px -8px rgba(28, 25, 23, 0.18);
+}
+.cream-pill-bar {
+    background: rgba(251, 248, 243, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 217, 203, 0.9);
+    box-shadow: 0 8px 24px -4px rgba(28, 25, 23, 0.14);
+}
+
+/* Floating Pin Labels (Policy Island Pill Style - GPU Accelerated) */
+.map-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    will-change: transform, opacity;
+}
+.map-label-inner {
+    transform: translate(-50%, -100%);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.map-label:hover .map-label-inner {
+    transform: translate(-50%, -108%) scale(1.08);
+    z-index: 60;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(245, 240, 230, 0.5);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(180, 165, 145, 0.7);
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(234, 88, 12, 0.8);
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+@keyframes pulseRing {
+    0% { transform: scale(0.9); opacity: 0.9; }
+    70% { transform: scale(1.55); opacity: 0; }
+    100% { transform: scale(1.55); opacity: 0; }
+}
+.pulse-dot::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 9999px;
+    background-color: #ea580c;
+    animation: pulseRing 1.8s infinite;
+    z-index: -1;
+}
+/* 工具列 switch 開關 */
+.sw { position: relative; width: 30px; height: 18px; border-radius: 999px; background: #d6d3d1; transition: background .2s; flex-shrink: 0; }
+.sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+[data-on="true"] > .sw { background: #1c1917; }
+[data-on="true"] > .sw::after { transform: translateX(12px); }
+.pref-switch > .sw { background: #f59e0b; }
+.pref-switch[data-on="true"] > .sw { background: #0d9488; }
+.pref-switch .sw-old { color: #92400e; }
+.pref-switch .sw-new { color: #a8a29e; }
+.pref-switch[data-on="true"] .sw-old { color: #a8a29e; }
+.pref-switch[data-on="true"] .sw-new { color: #115e59; }
+.layer-row { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; color: #44403c; transition: background .15s; }
+.layer-row:hover { background: rgba(231, 229, 228, .7); }
+/* 左側卡片一律從標題卡下方開始，視窗變窄、標題換行時也不會重疊 */
+.side-card { top: var(--card-top, 9rem) !important; }
+/* 窄螢幕底部有工具列，左側卡片底部讓出空間 */
+@media (max-width: 1279px) { .side-card { bottom: 4.75rem !important; } }

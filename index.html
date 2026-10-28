@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本令制國・一之宮與百名城 3D 探索島</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+    <!-- 樣式（Tailwind 建置）與 Three.js：由 Vite 打包，並把 THREE 掛到全域給下方程式使用 -->
+    <script type="module" src="/src/main.js"></script>
+
+</head>
+<body class="text-stone-800 antialiased">
+
+    <!-- 3D WebGL Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- Floating 3D Pin Labels Overlay -->
+    <div id="labels-container" class="fixed inset-0 pointer-events-none z-10 overflow-hidden"></div>
+
+    <!-- ================= TOP LEFT: HEART POLICY ISLAND STYLE BRAND CARD ================= -->
+    <header id="brand-card" class="fixed top-4 left-4 z-30 pointer-events-none flex flex-col gap-2 max-w-[295px] sm:max-w-xs">
+        <div class="cream-card rounded-3xl px-5 py-3.5 pointer-events-auto">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <div class="text-[11px] font-black tracking-widest text-orange-600 uppercase whitespace-nowrap">SHINKOKU & MEIJO 3D</div>
+                    <h1 class="text-lg sm:text-xl font-black tracking-tight text-stone-900 leading-tight mt-0.5 whitespace-nowrap">
+                        日本令制國探索島
+                    </h1>
+                </div>
+                <span class="px-2 py-1 rounded-full bg-orange-600 text-white text-[10px] leading-tight font-bold shadow-sm shrink-0 text-center">
+                    全68國<br>＋蝦夷・琉球
+                </span>
+            </div>
+
+            <!-- Interactive Breadcrumb Bar -->
+            <div class="mt-2.5 pt-2 border-t border-stone-200/80 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-1 font-bold overflow-hidden">
+                    <button onclick="resetToAllRegions()" class="text-stone-500 hover:text-orange-600 transition flex items-center gap-1 shrink-0">
+                        <span>🗾</span><span>五畿八道</span>
+                    </button>
+                    <span id="bc-sep-1" class="text-stone-400 hidden">/</span>
+                    <button id="bc-region-btn" onclick="focusCurrentRegion()" class="text-orange-600 hover:underline truncate hidden">--</button>
+                    <span id="bc-sep-2" class="text-stone-400 hidden">/</span>
+                    <span id="bc-prov-name" class="text-stone-900 font-black truncate hidden">--</span>
+                </div>
+                <span id="stamp-counter-pill" class="text-[11px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full shrink-0">
+                    0 / 69 印
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================= TOP CENTER：整合後的單一工具列 ================= -->
+    <nav class="fixed top-4 left-[328px] right-[358px] z-30 pointer-events-none hidden xl:flex justify-center items-start whitespace-nowrap [&>*]:pointer-events-auto">
+        <div class="cream-pill-bar rounded-full p-1.5 flex items-center gap-1">
+            <!-- 古今地名 switch -->
+            <button onclick="toggleModernPrefectureMode()" id="btn-pref-mode" role="switch" aria-checked="false" data-on="false" class="pref-switch px-3 py-1.5 rounded-full text-xs font-black flex items-center gap-2 hover:bg-stone-200/50 transition" title="切換古令制國／現代都道府縣名稱">
+                <span class="sw-old">古</span><span class="sw"></span><span class="sw-new">今</span>
+            </button>
+            <span class="w-px h-5 bg-stone-300/80 mx-0.5"></span>
+
+            <!-- 景色：時段＋季節 -->
+            <div class="relative">
+                <button onclick="togglePop('pop-scene', event)" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5" title="時段與季節">
+                    <span id="scene-now">☀️🍁</span><span>景色</span><span class="text-[9px] text-stone-400">▼</span>
+                </button>
+                <div id="pop-scene" class="tb-pop hidden absolute left-1/2 -translate-x-1/2 top-12 cream-card rounded-2xl p-3 space-y-2.5 w-max">
+                    <div>
+                        <div class="text-[10px] font-black text-stone-500 mb-1">時段</div>
+                        <div class="flex gap-1">
+                            <button onclick="setTimeOfDay('dawn')" id="time-dawn" class="w-9 h-9 rounded-full flex items-center justify-center text-sm transition hover:bg-stone-200/60" title="晨曦赤富士">🌅</button>
+                            <button onclick="setTimeOfDay('day')" id="time-day" class="w-9 h-9 rounded-full flex items-center justify-center text-sm transition bg-stone-900 text-white shadow-sm" title="晴朗白晝">☀️</button>
+                            <button onclick="setTimeOfDay('night')" id="time-night" class="w-9 h-9 rounded-full flex items-center justify-center text-sm transition hover:bg-stone-200/60" title="神社夜燈">🌙</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-black text-stone-500 mb-1">季節</div>
+                        <div class="flex gap-1">
+                            <button onclick="setSeason('spring')" id="season-spring" class="w-9 h-9 rounded-full flex items-center justify-center text-sm transition hover:bg-stone-200/60" title="春：櫻花盛開">🌸</button>
+                            <button onclick="setSeason('summer')" id="season-summer" class="w-9 h-9 rounded-full flex items-center justify-center text-sm transition hover:bg-stone-200/60" title="夏：新綠滿山">🌿</button>
+                            <button onclick="setSeason('autumn')" id="season-autumn" class="w-9 h-9 rounded-full flex items-center justify-center text-sm transition hover:bg-stone-200/60" title="秋：紅葉時節">🍁</button>
+                            <button onclick="setSeason('winter')" id="season-winter" class="w-9 h-9 rounded-full flex items-center justify-center text-sm transition hover:bg-stone-200/60" title="冬：白雪覆蓋">❄️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 圖層：各種顯示開關 -->
+            <div class="relative">
+                <button onclick="togglePop('pop-layers', event)" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5" title="地圖顯示項目">
+                    <span>🗂️</span><span>圖層</span><span class="text-[9px] text-stone-400">▼</span>
+                </button>
+                <div id="pop-layers" class="tb-pop hidden absolute left-1/2 -translate-x-1/2 top-12 cream-card rounded-2xl p-2 w-[200px]">
+                    <button onclick="toggleAllProvincePins()" id="btn-all-pins" data-on="false" class="layer-row"><span>🏷️ 全部名牌</span><span class="sw"></span></button>
+                    <button onclick="toggleHighwayLines()" id="btn-routes" data-on="true" class="layer-row"><span>⛩️ 驛道線</span><span class="sw"></span></button>
+                    <button onclick="toggleGeoLabels()" id="btn-geo" data-on="true" class="layer-row"><span>⛰️ 山河湖名稱</span><span class="sw"></span></button>
+                    <button onclick="toggleWeather()" id="btn-weather" data-on="false" class="layer-row" title="資料來源 Open-Meteo"><span>🌦️ 即時天氣</span><span class="sw"></span></button>
+                </div>
+            </div>
+            <span class="w-px h-5 bg-stone-300/80 mx-0.5"></span>
+
+            <!-- 玩法 -->
+            <button onclick="openDogCard()" id="btn-dog" title="代參犬任務：帶柴犬こまち去伊勢神宮" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5">
+                <span>🐕</span><span>代參犬</span>
+            </button>
+            <button onclick="openWardrobe()" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5" title="幫旅人換和服">
+                <span>👘</span><span>換裝</span>
+            </button>
+            <button onclick="openGoshuinModal()" title="御朱印帳" class="px-3 py-1.5 rounded-full text-xs font-bold text-orange-700 bg-orange-100/90 hover:bg-orange-200/80 transition flex items-center gap-1.5">
+                <span>📖</span><span>御朱印帳</span>
+            </button>
+            <span class="w-px h-5 bg-stone-300/80 mx-0.5"></span>
+
+            <button onclick="resetToAllRegions()" title="回到全景" class="w-8 h-8 rounded-full text-sm text-stone-700 hover:bg-stone-200/70 transition flex items-center justify-center">🗾</button>
+            <button onclick="openSourceModal()" class="w-8 h-8 rounded-full text-xs font-black text-stone-700 hover:bg-stone-200/70 transition flex items-center justify-center" title="考據與官方資料來源">?</button>
+        </div>
+    </nav>
+
+    <!-- ================= LEFT FLOATING DETAIL CARD (WITH SHRINE / CASTLE TABS!) ================= -->
+    <aside id="left-detail-card" class="fixed top-36 side-card bottom-5 left-4 z-30 w-[92vw] sm:w-[395px] cream-card rounded-3xl flex flex-col overflow-hidden transition-all duration-300 -translate-x-[120%] opacity-0 pointer-events-none">
+        <!-- Card Top Header -->
+        <div class="p-5 pb-3 border-b border-stone-200/80 bg-gradient-to-br from-orange-50/90 via-stone-50 to-amber-50/50 relative">
+            <button onclick="closeDetailCard()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-200/80 hover:bg-stone-300 text-stone-700 flex items-center justify-center text-sm font-bold transition" title="關閉視窗">
+                ✕
+            </button>
+
+            <div class="flex items-center gap-2 pr-8">
+                <span id="dc-region-pill" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-600 text-white">
+                    畿內（五畿）
+                </span>
+                <span id="dc-romaji" class="text-xs font-semibold text-stone-500">別稱：城州</span>
+            </div>
+
+            <!-- 國名、讀音、現代對應：由上而下排，長的現代縣名不會擠壓國名 -->
+            <div class="mt-1.5">
+                <h2 id="dc-title" class="text-2xl font-serif-jp font-black text-stone-900 tracking-tight leading-tight whitespace-nowrap">山城國</h2>
+                <div class="flex flex-wrap items-baseline gap-x-1.5 mt-0.5">
+                    <span id="dc-kana" class="text-sm font-bold text-stone-600 whitespace-nowrap">やましろのくに</span>
+                    <span id="dc-roma" class="text-[11px] font-semibold text-stone-400 italic whitespace-nowrap">Yamashiro no Kuni</span>
+                </div>
+                <span id="dc-modern-pref" class="inline-block mt-1.5 text-xs font-bold text-teal-800 bg-teal-100/90 border border-teal-300 px-2.5 py-0.5 rounded-full max-w-full">
+                    今：京都府南部
+                </span>
+                <div id="dc-weather" class="hidden mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-sky-50 border border-sky-200"></div>
+            </div>
+
+            <!-- Brief Geography Pill -->
+            <p id="dc-geo-desc" class="text-xs text-stone-600 leading-relaxed mt-2 bg-white/80 p-2.5 rounded-xl border border-stone-200/70">
+                --
+            </p>
+
+            <!-- TWO TABS: 1. 一之宮神社 | 2. 代表古城・名城 -->
+            <div class="grid grid-cols-2 gap-1.5 mt-3 bg-stone-200/75 p-1 rounded-2xl">
+                <button id="tab-btn-shrine" onclick="switchDetailTab('shrine')" class="py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 bg-white text-red-700 shadow-sm">
+                    <span>⛩️</span><span>一之宮・名社</span><span id="tab-count-shrine" class="text-[10px] opacity-70"></span>
+                </button>
+                <button id="tab-btn-castle" onclick="switchDetailTab('castle')" class="py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 text-stone-600 hover:text-stone-900">
+                    <span>🏯</span><span>代表古城・名城</span><span id="tab-count-castle" class="text-[10px] opacity-70"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Scrollable Tab Body -->
+        <div class="flex-1 overflow-y-auto p-5 space-y-4 text-sm">
+
+            <!-- TAB 1：一之宮神社（一社一張介紹卡） -->
+            <div id="tab-panel-shrine" class="space-y-3.5">
+                <div id="dc-shrine-nav" class="flex flex-wrap gap-1.5"></div>
+                <div id="dc-shrine-list" class="space-y-3.5"></div>
+            </div>
+
+            <!-- TAB 2：代表古城・名城（一城一張介紹卡） -->
+            <div id="tab-panel-castle" class="space-y-3.5 hidden">
+                <div id="dc-castle-nav" class="flex flex-wrap gap-1.5"></div>
+                <div id="dc-castle-list" class="space-y-3.5"></div>
+            </div>
+
+            <!-- Neighboring Relay Connections -->
+            <div class="p-3.5 rounded-2xl bg-white/85 border border-stone-200/80 space-y-2">
+                <div class="text-xs font-bold text-stone-500 flex items-center justify-between">
+                    <span>🔗 相鄰令制國驛道（點擊飛往）</span>
+                    <span class="text-[10px] text-orange-600">古驛道串聯</span>
+                </div>
+                <div id="dc-neighbors" class="flex flex-wrap gap-1.5"></div>
+            </div>
+        </div>
+
+        <!-- Bottom Action Stamp Button -->
+        <div class="p-4 border-t border-stone-200/80 bg-white/90 flex items-center gap-2.5">
+            <button id="dc-stamp-btn" onclick="toggleCurrentStamp()" class="flex-1 py-2.5 px-4 rounded-2xl font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-500 text-white">
+                <span>💮</span>
+                <span id="dc-stamp-text">蓋下「一之宮 × 名城」巡拜印</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ================= LEFT FLOATING TRAVELER CARD（點擊旅人開啟） ================= -->
+    <aside id="traveler-card" class="fixed top-36 side-card bottom-5 left-4 z-30 w-[92vw] sm:w-[360px] cream-card rounded-3xl flex flex-col overflow-hidden transition-all duration-300 -translate-x-[120%] opacity-0 pointer-events-none">
+        <div class="flex-1 overflow-y-auto p-5 space-y-4 text-sm">
+            <div class="flex items-start gap-3">
+                <div class="relative shrink-0">
+                    <img id="tc-portrait" alt="旅人朝霧的頭像" class="w-16 h-16 rounded-2xl border-2 border-orange-500 object-cover bg-amber-50">
+                    <span class="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-stone-900 text-amber-50 text-[11px] font-black flex items-center justify-center border-2 border-white">旅</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-[10px] font-black tracking-widest text-orange-600">平安巡禮旅人</div>
+                    <div class="flex items-baseline gap-1.5">
+                        <h2 class="text-2xl font-serif-jp font-black text-stone-900">朝霧</h2>
+                        <span class="text-xs text-stone-400 font-bold">あさぎり</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                        <span id="tc-tag-era" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-200">平安時代</span>
+                        <span id="tc-tag-outfit" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-800 border border-violet-200">狩衣・立烏帽子</span>
+                        <button onclick="openWardrobe()" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-orange-600 text-white hover:bg-orange-500 shadow-sm transition">👘 換裝</button>
+                    </div>
+                </div>
+                <button onclick="closeTravelerCard()" class="w-8 h-8 rounded-full hover:bg-stone-200/80 text-stone-700 flex items-center justify-center text-base font-bold transition shrink-0" title="關閉">✕</button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+                <div class="rounded-2xl bg-white border border-stone-200 border-l-4 border-l-orange-500 px-3 py-2">
+                    <div class="text-[10px] font-bold text-stone-500">正在</div>
+                    <div id="tc-doing" class="text-base font-black text-stone-900 leading-tight">巡拜</div>
+                </div>
+                <div class="rounded-2xl bg-white border border-stone-200 border-l-4 border-l-teal-600 px-3 py-2 min-w-0">
+                    <div class="text-[10px] font-bold text-stone-500">從</div>
+                    <div id="tc-from" class="text-base font-black text-stone-900 leading-tight truncate">平安京</div>
+                </div>
+                <div class="rounded-2xl bg-white border border-stone-200 border-l-4 border-l-amber-400 px-3 py-2 min-w-0">
+                    <div class="text-[10px] font-bold text-stone-500">到</div>
+                    <div id="tc-to" class="text-base font-black text-stone-900 leading-tight truncate">山城國</div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-100 text-xs font-bold text-emerald-900">
+                <span id="tc-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span id="tc-status">已抵達山城國，正在參拜賀茂兩社</span>
+            </div>
+
+            <div>
+                <div class="text-[11px] font-black text-stone-500 mb-1.5">路程</div>
+                <div class="h-2 rounded-full bg-stone-200/80 overflow-hidden">
+                    <div id="tc-progress" class="h-full rounded-full bg-gradient-to-r from-teal-600 to-teal-500 transition-[width] duration-200" style="width:100%"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-stone-400 font-bold mt-1">
+                    <span id="tc-progress-label">已抵達</span>
+                    <span id="tc-stamps">巡拜印 0 / 74</span>
+                </div>
+            </div>
+
+            <div>
+                <div class="text-[11px] font-black text-stone-500 mb-1.5">這身裝束</div>
+                <div id="tc-costume" class="space-y-1.5 text-xs text-stone-700 leading-relaxed"></div>
+            </div>
+
+            <div>
+                <div class="text-[11px] font-black text-stone-500 mb-1.5">巡拜足跡（點擊前往）</div>
+                <div id="tc-footprints" class="flex flex-wrap gap-1.5"></div>
+            </div>
+
+            <div class="border-l-4 border-orange-500 pl-3 py-1">
+                <p id="tc-quote" class="text-sm text-stone-800 leading-relaxed">--</p>
+                <div class="text-[10px] text-stone-400 font-bold mt-1">朝霧的旅日記</div>
+                <button id="tc-open-detail" class="mt-1.5 text-xs font-black text-stone-900 underline underline-offset-4 hover:text-orange-600">查看這一國的介紹 ↗</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= LEFT FLOATING PREFECTURE CARD（現代視角：一縣一張） ================= -->
+    <aside id="pref-card" class="fixed top-36 side-card bottom-5 left-4 z-30 w-[92vw] sm:w-[380px] cream-card rounded-3xl flex flex-col overflow-hidden transition-all duration-300 -translate-x-[120%] opacity-0 pointer-events-none">
+        <div class="p-5 pb-3 border-b border-stone-200/80 bg-gradient-to-br from-teal-50/90 via-stone-50 to-sky-50/50 relative">
+            <button onclick="closePrefCard()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-200/80 hover:bg-stone-300 text-stone-700 flex items-center justify-center text-sm font-bold transition" title="關閉視窗">✕</button>
+            <span id="pc-region-pill" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white">近畿地方</span>
+            <h2 id="pc-title" class="text-2xl font-serif-jp font-black text-stone-900 tracking-tight mt-1.5 leading-tight">京都府</h2>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+                <span id="pc-kana" class="text-sm font-bold text-stone-600">きょうとふ</span>
+                <span id="pc-roma" class="text-[11px] font-semibold text-stone-400 italic">Kyōto-fu</span>
+            </div>
+            <p id="pc-summary" class="text-xs text-stone-600 leading-relaxed mt-2 bg-white/80 p-2.5 rounded-xl border border-stone-200/70">--</p>
+        </div>
+        <div class="flex-1 overflow-y-auto p-5 space-y-2.5 text-sm">
+            <div class="text-[11px] font-black text-stone-500">古代令制國（點擊查看一之宮與名城）</div>
+            <div id="pc-provinces" class="space-y-2"></div>
+        </div>
+    </aside>
+
+    <!-- ================= LEFT FLOATING WALKER CARD（路上小人物的旅程導航） ================= -->
+    <aside id="walker-card" class="fixed top-36 side-card bottom-5 left-4 z-30 w-[92vw] sm:w-[360px] cream-card rounded-3xl flex flex-col overflow-hidden transition-all duration-300 -translate-x-[120%] opacity-0 pointer-events-none">
+        <div class="flex-1 overflow-y-auto p-5 space-y-4 text-sm">
+            <div class="flex items-start gap-3">
+                <img id="wk-portrait" alt="旅人頭像" class="w-16 h-16 rounded-2xl border-2 border-stone-300 object-cover bg-amber-50 shrink-0">
+                <div class="flex-1 min-w-0">
+                    <div class="text-[10px] font-black tracking-widest text-orange-600">驛道上的旅人</div>
+                    <h2 id="wk-name" class="text-xl font-serif-jp font-black text-stone-900 leading-tight">--</h2>
+                    <span id="wk-role" class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold border">--</span>
+                </div>
+                <button onclick="closeWalkerCard()" class="w-8 h-8 rounded-full hover:bg-stone-200/80 text-stone-700 flex items-center justify-center text-base font-bold transition shrink-0" title="關閉">✕</button>
+            </div>
+
+            <div class="border-l-4 border-orange-500 pl-3 py-1">
+                <div class="text-[10px] font-black text-stone-500">這趟旅程的目的</div>
+                <p id="wk-purpose" class="text-sm font-bold text-stone-800 leading-relaxed">--</p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+                <div class="rounded-2xl bg-white border border-stone-200 border-l-4 border-l-teal-600 px-3 py-2 min-w-0">
+                    <div class="text-[10px] font-bold text-stone-500">從</div>
+                    <div id="wk-from" class="text-sm font-black text-stone-900 leading-tight truncate">--</div>
+                </div>
+                <div class="rounded-2xl bg-white border border-stone-200 border-l-4 border-l-orange-500 px-3 py-2 min-w-0">
+                    <div class="text-[10px] font-bold text-stone-500">目前</div>
+                    <div id="wk-now" class="text-sm font-black text-stone-900 leading-tight truncate">--</div>
+                </div>
+                <div class="rounded-2xl bg-white border border-stone-200 border-l-4 border-l-amber-400 px-3 py-2 min-w-0">
+                    <div class="text-[10px] font-bold text-stone-500">到</div>
+                    <div id="wk-to" class="text-sm font-black text-stone-900 leading-tight truncate">--</div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl bg-white/90 border border-stone-200 p-3 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-black text-stone-500">🧭 旅程導航</span>
+                    <button id="wk-follow" onclick="toggleFollowWalker()" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-900 text-white hover:bg-stone-700">🎥 鏡頭跟隨</button>
+                </div>
+                <div class="h-2 rounded-full bg-stone-200/80 overflow-hidden">
+                    <div id="wk-progress" class="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-[width] duration-200" style="width:0%"></div>
+                </div>
+                <div id="wk-status" class="text-xs font-bold text-stone-800">--</div>
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="rounded-xl bg-orange-50 border border-orange-100 py-2">
+                        <div id="wk-eta" class="text-base font-black text-orange-700">--</div>
+                        <div id="wk-remain" class="text-[10px] font-bold text-stone-500">--</div>
+                    </div>
+                    <div class="rounded-xl bg-teal-50 border border-teal-100 py-2 flex flex-col justify-center">
+                        <div id="wk-map-eta" class="text-xs font-black text-teal-800">--</div>
+                        <div class="text-[10px] font-bold text-stone-500">依地圖上的步行速度</div>
+                    </div>
+                </div>
+                <div id="wk-pace" class="text-[10px] text-stone-400 font-bold">--</div>
+            </div>
+
+            <div>
+                <div class="text-[11px] font-black text-stone-500 mb-1">路線（點擊查看該國）</div>
+                <div id="wk-steps" class="relative pl-0.5"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= RIGHT SIDEBAR: THE POLICY INDEX STYLE DIRECTORY ================= -->
+    <aside id="right-index-panel" class="fixed top-4 bottom-4 right-4 z-30 w-[330px] cream-card rounded-3xl hidden lg:flex flex-col overflow-hidden transition-transform duration-300">
+        <!-- Header -->
+        <div class="p-5 pb-3.5 border-b border-stone-200/80">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black tracking-widest uppercase text-orange-600">THE RYOSEIKOKU INDEX</span>
+                <button onclick="toggleModernPrefectureMode()" role="switch" aria-checked="false" data-on="false" class="pref-switch xl:hidden text-[11px] font-black flex items-center gap-1.5 px-2 py-0.5 rounded-full hover:bg-stone-200/50 transition" title="切換古令制國／現代都道府縣名稱">
+                    <span class="sw-old">古</span><span class="sw"></span><span class="sw-new">今</span>
+                </button>
+            </div>
+            <h2 class="text-xl font-black text-stone-900 tracking-tight mt-0.5">把神國與名城，連起來。</h2>
+            <p class="text-xs text-stone-500 mt-0.5">9 大道區 ／ 全 68 令制國 ＋ 北海道蝦夷地 ＋ 琉球</p>
+
+            <!-- Search Input -->
+            <div class="relative mt-3">
+                <input id="search-input" type="text" placeholder="搜尋令制國、現代縣名、一之宮、名城..."
+                    class="w-full bg-white border border-stone-200/90 rounded-2xl pl-9 pr-7 py-2 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-orange-500 transition">
+                <span class="absolute left-3 top-2 text-stone-400 text-xs">🔍</span>
+                <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 top-2 text-stone-400 hover:text-stone-700 text-xs">✕</button>
+            </div>
+
+            <!-- Region Filter Pills -->
+            <div id="region-pills-bar" class="flex items-center gap-1 overflow-x-auto pt-2.5 pb-1 no-scrollbar"></div>
+        </div>
+
+        <!-- Scrollable Province List -->
+        <div id="index-list-container" class="flex-1 overflow-y-auto p-3 space-y-1.5"></div>
+
+        <!-- Quick Jump Footer for Far North / South -->
+        <div class="p-2.5 border-t border-stone-200/80 bg-stone-100/80 grid grid-cols-4 gap-1 text-[11px] font-bold text-stone-600">
+            <button onclick="flyToCustomCoord(-12.5, 7.5, '西海道（九州）')" class="py-1 rounded-lg hover:bg-white hover:text-orange-600 transition">九州</button>
+            <button onclick="flyToCustomCoord(-4.2, 4.8, '畿內（京都・奈良）')" class="py-1 rounded-lg hover:bg-white hover:text-orange-600 transition">關西畿內</button>
+            <button onclick="flyToCustomCoord(5.2, 2.8, '關東・富士山')" class="py-1 rounded-lg hover:bg-white hover:text-orange-600 transition">關東富士</button>
+            <button onclick="flyToCustomCoord(7.8, -2.5, '東北奧羽・北海道')" class="py-1 rounded-lg hover:bg-white hover:text-orange-600 transition">東北奧羽</button>
+        </div>
+    </aside>
+
+    <!-- ================= 視角控制：拖拉模式、旋轉、俯仰 ================= -->
+    <div id="view-ctl" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 hidden xl:flex flex-col items-center gap-1.5">
+        <div class="cream-pill-bar rounded-full p-1.5 flex items-center gap-1">
+            <button id="drag-mode-pan" onclick="setDragMode('pan')" class="px-3 py-1.5 rounded-full text-xs font-black transition" title="滑鼠左鍵拖拉＝移動地圖">✋ 移動</button>
+            <button id="drag-mode-rotate" onclick="setDragMode('rotate')" class="px-3 py-1.5 rounded-full text-xs font-black transition" title="滑鼠左鍵拖拉＝旋轉視角">🔄 旋轉</button>
+            <span class="w-px h-5 bg-stone-300/80 mx-0.5"></span>
+            <button class="w-9 h-9 rounded-full flex items-center justify-center text-base font-black text-stone-700 hover:bg-stone-200/70 active:bg-stone-300 transition select-none" data-orbit="-1,0" title="向左轉（Q）">⟲</button>
+            <button class="w-9 h-9 rounded-full flex items-center justify-center text-base font-black text-stone-700 hover:bg-stone-200/70 active:bg-stone-300 transition select-none" data-orbit="1,0" title="向右轉（E）">⟳</button>
+            <button class="w-9 h-9 rounded-full flex items-center justify-center text-base font-black text-stone-700 hover:bg-stone-200/70 active:bg-stone-300 transition select-none" data-orbit="0,-1" title="抬高視角、往下看（R）">⤒</button>
+            <button class="w-9 h-9 rounded-full flex items-center justify-center text-base font-black text-stone-700 hover:bg-stone-200/70 active:bg-stone-300 transition select-none" data-orbit="0,1" title="壓低視角、看向遠方（F）">⤓</button>
+            <button onclick="resetViewAngle()" class="w-9 h-9 rounded-full flex items-center justify-center text-base font-black text-stone-700 hover:bg-stone-200/70 active:bg-stone-300 transition select-none text-xs" title="轉回正北">🧭</button>
+        </div>
+        <div class="text-[10px] font-bold text-stone-600 bg-white/70 rounded-full px-2.5 py-0.5 shadow-sm">按住 Shift 拖拉可切換移動／旋轉・滾輪或雙指縮放</div>
+    </div>
+
+    <!-- ================= 代參犬任務卡 ================= -->
+    <aside id="dog-card" class="fixed top-36 side-card bottom-5 left-4 z-30 w-[92vw] sm:w-[380px] cream-card rounded-3xl flex flex-col overflow-hidden transition-all duration-300 -translate-x-[120%] opacity-0 pointer-events-none">
+        <div class="flex-1 overflow-y-auto p-5 space-y-3 text-sm">
+            <div class="flex items-start gap-3">
+                <div class="w-14 h-14 rounded-2xl bg-amber-100 border-2 border-amber-300 flex items-center justify-center text-3xl shrink-0">🐕</div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-[10px] font-black tracking-widest text-orange-600">代參犬任務・おかげ犬</div>
+                    <h2 class="text-xl font-serif-jp font-black text-stone-900 leading-tight">こまちの伊勢參り</h2>
+                    <div class="text-[11px] text-stone-500">目的地：伊勢神宮 內宮</div>
+                </div>
+                <button onclick="closeDogCard()" class="w-8 h-8 rounded-full hover:bg-stone-200/80 text-stone-700 flex items-center justify-center text-base font-bold transition shrink-0" title="關閉">✕</button>
+            </div>
+            <div id="dog-body" class="space-y-3"></div>
+        </div>
+    </aside>
+
+    <div id="dog-cert-modal" class="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-sm hidden items-center justify-center p-4" onclick="if (event.target === this) hideModal('dog-cert-modal')">
+        <div class="rounded-3xl max-w-md w-full p-6 border-4 border-double border-red-700 shadow-2xl" style="background:#fbf6ea">
+            <div id="dog-cert-body"></div>
+            <button onclick="hideModal('dog-cert-modal')" class="mt-4 w-full py-2 rounded-2xl bg-stone-900 text-white text-xs font-bold">收下代參證</button>
+        </div>
+    </div>
+
+    <!-- 窄螢幕的底部工具列（寬螢幕改用上方工具列）：一排、放不下可左右滑 -->
+    <div class="fixed bottom-3 inset-x-3 z-30 xl:hidden flex justify-center pointer-events-none">
+        <div class="cream-pill-bar rounded-full p-1.5 flex items-center gap-1 overflow-x-auto max-w-full pointer-events-auto [scrollbar-width:none]">
+            <button onclick="toggleModernPrefectureMode()" role="switch" aria-checked="false" data-on="false" class="pref-switch lg:hidden shrink-0 px-3 py-2 rounded-full text-xs font-black flex items-center gap-1.5 hover:bg-stone-200/50 transition" title="切換古令制國／現代都道府縣名稱">
+                <span class="sw-old">古</span><span class="sw"></span><span class="sw-new">今</span>
+            </button>
+            <button onclick="cycleSeason()" id="season-mobile" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-full text-xs font-black text-stone-800 hover:bg-stone-200/60 transition">🍁 秋</button>
+            <button onclick="toggleWeather()" id="weather-mobile" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-full text-xs font-black text-stone-800 hover:bg-stone-200/60 transition">🌦️ 天氣</button>
+            <button onclick="openDogCard()" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-full text-xs font-black text-stone-800 hover:bg-stone-200/60 transition">🐕 代參犬</button>
+            <button onclick="openWardrobe()" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-full text-xs font-black text-stone-800 hover:bg-stone-200/60 transition">👘 換裝</button>
+            <button onclick="openGoshuinModal()" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-full text-xs font-black text-orange-700 bg-orange-100/90 transition">📖 御朱印帳</button>
+            <button onclick="resetToAllRegions()" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-full text-xs font-black text-stone-800 hover:bg-stone-200/60 transition">🗾 全景</button>
+        </div>
+    </div>
+
+    <!-- ================= MODAL 1: AUTHORITATIVE SOURCES ================= -->
+    <div id="source-modal" class="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="cream-card rounded-3xl max-w-2xl w-full p-6 sm:p-7 space-y-5 max-h-[88vh] overflow-y-auto border border-stone-300">
+            <div class="flex items-center justify-between border-b border-stone-200 pb-4">
+                <div class="flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-2xl bg-orange-600 text-white flex items-center justify-center text-lg font-bold">考</span>
+                    <div>
+                        <h3 class="text-lg font-black text-stone-900">可靠史料來源與設計說明</h3>
+                        <p class="text-xs text-stone-500">絕不杜撰！本網站全數依據日本古典地理、全國一之宮會與日本城郭協會資料建構</p>
+                    </div>
+                </div>
+                <button onclick="closeSourceModal()" class="w-8 h-8 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3.5 text-xs sm:text-sm text-stone-700 leading-relaxed">
+                <div class="p-4 rounded-2xl bg-white border border-stone-200">
+                    <div class="font-black text-red-700 mb-1">1. 全國一之宮資料來源（全国一の宮巡拝会）</div>
+                    <p>各令制國之「一之宮（いちのみや）」社名、主祭神、所在地與一國多社認定（如山城國賀茂兩社、大和國大神神社、出雲國出雲大社、安藝國嚴島神社、信濃國諏訪大社等），皆核對自官方網站：</p>
+                    <a href="https://ichinomiya-junpai.jp/" target="_blank" rel="noopener noreferrer" class="inline-block mt-1.5 font-bold text-orange-600 underline">
+                        👉 https://ichinomiya-junpai.jp/ （全国一の宮巡拝会 公式サイト）
+                    </a>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-white border border-stone-200">
+                    <div class="font-black text-teal-800 mb-1">2. 日本全 68 令制國（五畿七道）古典地理考據</div>
+                    <p>完整涵蓋五畿七道共 68 國（含山陰道8國：丹波、丹後、但馬、因幡、伯耆、出雲、石見、隱岐；北陸道7國；山陽道8國；南海道6國；西海道11國；東海道15國；東山道13國及畿內5國），以及明治新設之北海道（蝦夷國新一之宮）：</p>
+                    <a href="https://www.languageweb.net/japanese/classical/place.html" target="_blank" rel="noopener noreferrer" class="inline-block mt-1.5 font-bold text-teal-700 underline">
+                        👉 https://www.languageweb.net/japanese/classical/place.html （舊國名・五畿七道對照）
+                    </a>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-white border border-stone-200">
+                    <div class="font-black text-amber-900 mb-1">3. 日本100名城・續日本100名城（公益財團法人日本城郭協會）</div>
+                    <p>各令制國代表城郭、現存十二天守（姬路城、松本城、彥根城、犬山城、松江城、備中松山城、丸龜城、伊予松山城、高知城、丸岡城、宇和島城、弘前城）與城主史實：</p>
+                    <a href="https://www.shirofan.com/" target="_blank" rel="noopener noreferrer" class="inline-block mt-1.5 font-bold text-amber-800 underline">
+                        👉 日本城郭協会「日本100名城・続日本100名城」名錄
+                    </a>
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="closeSourceModal()" class="px-6 py-2.5 rounded-2xl bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition">
+                    了解，返回探索島
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL 2: DIGITAL GOSHUINCHO STAMP BOOK ================= -->
+    <div id="goshuin-modal" class="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="cream-card rounded-3xl max-w-4xl w-full p-6 sm:p-7 space-y-4 max-h-[88vh] flex flex-col border border-stone-300">
+            <div class="flex items-center justify-between border-b border-stone-200 pb-4">
+                <div class="flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-2xl bg-red-700 text-white flex items-center justify-center text-lg">💮</span>
+                    <div>
+                        <h3 class="text-lg font-serif-jp font-black text-stone-900">御朱印帳・御城印帳</h3>
+                        <p id="goshuin-progress-label" class="text-xs text-stone-500">--</p>
+                    </div>
+                </div>
+                <button onclick="closeGoshuinModal()" class="w-8 h-8 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold">✕</button>
+            </div>
+
+            <div class="flex gap-2">
+                <button id="gs-tab-shrine" onclick="switchGoshuinTab('shrine')">⛩️ 神社御朱印 <span id="gs-count-shrine" class="text-xs opacity-80">--</span></button>
+                <button id="gs-tab-castle" onclick="switchGoshuinTab('castle')">🏯 城郭御城印 <span id="gs-count-castle" class="text-xs opacity-80">--</span></button>
+            </div>
+            <div id="goshuin-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 overflow-y-auto p-1 flex-1"></div>
+
+            <div class="pt-3 border-t border-stone-200 flex items-center justify-between">
+                <button onclick="clearAllStamps()" class="text-xs font-bold text-stone-400 hover:text-red-600 transition">
+                    重置所有御朱印與御城印
+                </button>
+                <button onclick="closeGoshuinModal()" class="px-6 py-2 rounded-2xl bg-stone-900 text-white text-xs font-bold">
+                    闔上御朱印帳
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL 3: 旅人換裝間 ================= -->
+    <div id="wardrobe-modal" class="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="cream-card rounded-3xl max-w-4xl w-full p-5 sm:p-6 max-h-[92vh] overflow-y-auto border border-stone-300">
+            <div class="flex items-center justify-between border-b border-stone-200 pb-3 mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-2xl bg-orange-600 text-white flex items-center justify-center text-lg">👘</span>
+                    <div>
+                        <h3 class="text-lg font-serif-jp font-black text-stone-900">朝霧的換裝間</h3>
+                        <p class="text-xs text-stone-500">挑選和服款式、傳統和色與和柄花色</p>
+                    </div>
+                </div>
+                <button onclick="closeWardrobe()" class="w-8 h-8 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold">✕</button>
+            </div>
+            <div class="flex flex-col md:flex-row gap-5">
+                <div class="md:w-[260px] shrink-0">
+                    <div id="wardrobe-preview" class="w-full h-[260px] md:h-[320px] rounded-2xl bg-gradient-to-b from-amber-50 via-orange-50 to-stone-200 border border-stone-200 overflow-hidden"></div>
+                    <div class="mt-3">
+                        <div id="wd-title" class="text-base font-serif-jp font-black text-stone-900">狩衣</div>
+                        <div id="wd-sub" class="text-[11px] font-bold text-orange-700">平安時代</div>
+                        <div id="wd-desc" class="mt-2 space-y-1.5 text-xs text-stone-700 leading-relaxed"></div>
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0 space-y-4">
+                    <div>
+                        <div class="text-[11px] font-black text-stone-500 mb-2">款式</div>
+                        <div id="wd-types" class="grid grid-cols-3 sm:grid-cols-5 gap-2"></div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-black text-stone-500 mb-2">顏色（傳統和色）</div>
+                        <div id="wd-colors" class="flex flex-wrap gap-2.5"></div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-black text-stone-500 mb-2">花色（和柄）</div>
+                        <div id="wd-patterns" class="flex flex-wrap gap-2.5"></div>
+                    </div>
+                    <div class="pt-2 flex items-center justify-between gap-2 border-t border-stone-200">
+                        <button onclick="wardrobeRandom()" class="px-4 py-2 rounded-2xl bg-white border border-stone-300 text-xs font-bold text-stone-700 hover:border-orange-400">🎲 隨機搭配</button>
+                        <div class="flex gap-2">
+                            <button onclick="closeWardrobe()" class="px-4 py-2 rounded-2xl text-xs font-bold text-stone-500 hover:text-stone-800">取消</button>
+                            <button onclick="applyWardrobe()" class="px-5 py-2 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-black shadow-md">穿上這套</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-box" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 translate-y-3">
+        <div class="px-5 py-2.5 rounded-full bg-stone-900 text-amber-50 text-xs font-bold shadow-xl flex items-center gap-2 border border-amber-400/40">
+            <span>💮</span>
+            <span id="toast-text">已加蓋巡拜紀念章！</span>
+        </div>
+    </div>
+
+    <!-- 主程式：依序載入（defer 會等頁面解析完，並排在上方模組之後執行） -->
+    <script defer src="js/01-data-provinces.js"></script>
+    <script defer src="js/02-data-sites.js"></script>
+    <script defer src="js/03-state.js"></script>
+    <script defer src="js/04-scene.js"></script>
+    <script defer src="js/05-seasons.js"></script>
+    <script defer src="js/06-mountains.js"></script>
+    <script defer src="js/07-forests.js"></script>
+    <script defer src="js/08-architecture.js"></script>
+    <script defer src="js/09-provinces-routes.js"></script>
+    <script defer src="js/10-sky-sea.js"></script>
+    <script defer src="js/11-wardrobe.js"></script>
+    <script defer src="js/12-walkers.js"></script>
+    <script defer src="js/13-weather.js"></script>
+    <script defer src="js/14-dog-quest.js"></script>
+    <script defer src="js/15-interaction.js"></script>
+    <script defer src="js/16-ui.js"></script>
+    <script defer src="js/17-traveler-card.js"></script>
+    <script defer src="js/18-toggles.js"></script>
+    <script defer src="js/19-search-stamps.js"></script>
+    <script defer src="js/20-boot.js"></script>
+</body>
+</html>

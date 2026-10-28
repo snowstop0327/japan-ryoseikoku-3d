@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+
+# 本機用，不上傳
+舊版單檔備份/
+.claude/
