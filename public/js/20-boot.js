@@ -47,4 +47,16 @@ function boot() {
     });
 }
 
-boot();
+// 先讓載入畫面顯示「建造神社與城郭」，再開始建 3D 場景（建場景時畫面會暫停更新）
+if (window.setLoaderProgress) setLoaderProgress(0.8, '建造神社與城郭…');
+setTimeout(() => {
+    try {
+        boot();
+    } catch (e) {
+        console.error(e);
+        if (window.setLoaderProgress) setLoaderProgress(1, '這個瀏覽器無法顯示 3D 畫面，請改用最新版 Chrome、Safari 或 Edge');
+        return;
+    }
+    // 稍等第一個畫面畫出來再收起載入畫面
+    setTimeout(() => window.hideLoader && hideLoader(), 150);
+}, 60);

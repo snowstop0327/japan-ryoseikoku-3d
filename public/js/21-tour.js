@@ -132,9 +132,9 @@ window.addEventListener('keydown', e => {
     else if (e.key === 'ArrowLeft') tourGo(-1);
 });
 
-// 第一次來的人：等場景出現後自動開始
-(() => {
+// 第一次來的人：載入畫面收起後自動開始（由 index.html 的 hideLoader 呼叫）
+function maybeStartTour() {
     let done = false;
     try { done = localStorage.getItem(TOUR_KEY) === '1'; } catch (e) {}
-    if (!done) setTimeout(startTour, 1200);
-})();
+    if (!done) setTimeout(startTour, 500);
+}
