@@ -62,6 +62,7 @@ public/js/              主程式，依檔名順序載入、共用全域範圍
   18-toggles.js           工具列開關、視角控制
   19-search-stamps.js     搜尋、御朱印帳、彈窗
   20-boot.js              啟動
+  21-tour.js              第一次開啟時的操作教學
 ```
 
 新增檔案時，記得在 `index.html` 底部照順序加上 `<script defer src="js/檔名.js">`。

@@ -55,7 +55,7 @@
 
     <!-- ================= TOP CENTER：整合後的單一工具列 ================= -->
     <nav class="fixed top-4 left-[328px] right-[358px] z-30 pointer-events-none hidden xl:flex justify-center items-start whitespace-nowrap [&>*]:pointer-events-auto">
-        <div class="cream-pill-bar rounded-full p-1.5 flex items-center gap-1">
+        <div id="tb-main" class="cream-pill-bar rounded-full p-1.5 flex items-center gap-1">
             <!-- 古今地名 switch -->
             <button onclick="toggleModernPrefectureMode()" id="btn-pref-mode" role="switch" aria-checked="false" data-on="false" class="pref-switch px-3 py-1.5 rounded-full text-xs font-black flex items-center gap-2 hover:bg-stone-200/50 transition" title="切換古令制國／現代都道府縣名稱">
                 <span class="sw-old">古</span><span class="sw"></span><span class="sw-new">今</span>
@@ -64,7 +64,7 @@
 
             <!-- 景色：時段＋季節 -->
             <div class="relative">
-                <button onclick="togglePop('pop-scene', event)" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5" title="時段與季節">
+                <button id="tb-scene" onclick="togglePop('pop-scene', event)" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5" title="時段與季節">
                     <span id="scene-now">☀️🍁</span><span>景色</span><span class="text-[9px] text-stone-400">▼</span>
                 </button>
                 <div id="pop-scene" class="tb-pop hidden absolute left-1/2 -translate-x-1/2 top-12 cream-card rounded-2xl p-3 space-y-2.5 w-max">
@@ -90,7 +90,7 @@
 
             <!-- 圖層：各種顯示開關 -->
             <div class="relative">
-                <button onclick="togglePop('pop-layers', event)" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5" title="地圖顯示項目">
+                <button id="tb-layers" onclick="togglePop('pop-layers', event)" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5" title="地圖顯示項目">
                     <span>🗂️</span><span>圖層</span><span class="text-[9px] text-stone-400">▼</span>
                 </button>
                 <div id="pop-layers" class="tb-pop hidden absolute left-1/2 -translate-x-1/2 top-12 cream-card rounded-2xl p-2 w-[200px]">
@@ -106,16 +106,22 @@
             <button onclick="openDogCard()" id="btn-dog" title="代參犬任務：帶柴犬こまち去伊勢神宮" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5">
                 <span>🐕</span><span>代參犬</span>
             </button>
-            <button onclick="openWardrobe()" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5" title="幫旅人換和服">
+            <button id="tb-wardrobe" onclick="openWardrobe()" class="px-3 py-1.5 rounded-full text-xs font-bold text-stone-700 hover:bg-stone-200/60 transition flex items-center gap-1.5" title="幫旅人換和服">
                 <span>👘</span><span>換裝</span>
             </button>
-            <button onclick="openGoshuinModal()" title="御朱印帳" class="px-3 py-1.5 rounded-full text-xs font-bold text-orange-700 bg-orange-100/90 hover:bg-orange-200/80 transition flex items-center gap-1.5">
+            <button id="tb-goshuin" onclick="openGoshuinModal()" title="御朱印帳" class="px-3 py-1.5 rounded-full text-xs font-bold text-orange-700 bg-orange-100/90 hover:bg-orange-200/80 transition flex items-center gap-1.5">
                 <span>📖</span><span>御朱印帳</span>
             </button>
             <span class="w-px h-5 bg-stone-300/80 mx-0.5"></span>
 
             <button onclick="resetToAllRegions()" title="回到全景" class="w-8 h-8 rounded-full text-sm text-stone-700 hover:bg-stone-200/70 transition flex items-center justify-center">🗾</button>
-            <button onclick="openSourceModal()" class="w-8 h-8 rounded-full text-xs font-black text-stone-700 hover:bg-stone-200/70 transition flex items-center justify-center" title="考據與官方資料來源">?</button>
+            <div class="relative">
+                <button id="tb-help" onclick="togglePop('pop-help', event)" class="w-8 h-8 rounded-full text-xs font-black text-stone-700 hover:bg-stone-200/70 transition flex items-center justify-center" title="操作教學與資料來源">?</button>
+                <div id="pop-help" class="tb-pop hidden absolute right-0 top-12 cream-card rounded-2xl p-2 w-[180px]">
+                    <button onclick="togglePop('pop-help'); startTour()" class="layer-row"><span>🎓 操作教學</span></button>
+                    <button onclick="togglePop('pop-help'); openSourceModal()" class="layer-row"><span>📚 資料來源與考據</span></button>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -426,7 +432,7 @@
 
     <!-- 窄螢幕的底部工具列（寬螢幕改用上方工具列）：一排、放不下可左右滑 -->
     <div class="fixed bottom-3 inset-x-3 z-30 xl:hidden flex justify-center pointer-events-none">
-        <div class="cream-pill-bar rounded-full p-1.5 flex items-center gap-1 overflow-x-auto max-w-full pointer-events-auto [scrollbar-width:none]">
+        <div id="mobile-bar" class="cream-pill-bar rounded-full p-1.5 flex items-center gap-1 overflow-x-auto max-w-full pointer-events-auto [scrollbar-width:none]">
             <button onclick="toggleModernPrefectureMode()" role="switch" aria-checked="false" data-on="false" class="pref-switch lg:hidden shrink-0 px-3 py-2 rounded-full text-xs font-black flex items-center gap-1.5 hover:bg-stone-200/50 transition" title="切換古令制國／現代都道府縣名稱">
                 <span class="sw-old">古</span><span class="sw"></span><span class="sw-new">今</span>
             </button>
@@ -436,6 +442,29 @@
             <button onclick="openWardrobe()" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-full text-xs font-black text-stone-800 hover:bg-stone-200/60 transition">👘 換裝</button>
             <button onclick="openGoshuinModal()" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-full text-xs font-black text-orange-700 bg-orange-100/90 transition">📖 御朱印帳</button>
             <button onclick="resetToAllRegions()" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-full text-xs font-black text-stone-800 hover:bg-stone-200/60 transition">🗾 全景</button>
+            <button onclick="startTour()" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-full text-xs font-black text-stone-800 hover:bg-stone-200/60 transition">🎓 教學</button>
+        </div>
+    </div>
+
+    <!-- ================= 新手教學（聚光燈＋說明卡） ================= -->
+    <div id="tour" class="fixed inset-0 z-[60] hidden">
+        <div id="tour-shade" class="absolute inset-0 bg-stone-950/55"></div>
+        <div id="tour-spot" class="absolute rounded-3xl pointer-events-none transition-all duration-300 hidden" style="box-shadow: 0 0 0 3px #f97316, 0 0 24px 4px rgba(249, 115, 22, 0.45);"></div>
+        <div id="tour-card" class="absolute cream-card rounded-3xl p-5 w-[min(360px,calc(100vw-32px))] border border-stone-300 shadow-2xl transition-all duration-300">
+            <div class="flex items-center justify-between mb-2">
+                <span id="tour-step" class="text-[10px] font-black tracking-widest text-orange-600">1 / 7</span>
+                <button onclick="endTour()" class="text-[11px] font-bold text-stone-400 hover:text-stone-700">略過教學</button>
+            </div>
+            <div id="tour-icon" class="text-3xl mb-1">⛩️</div>
+            <h3 id="tour-title" class="text-lg font-serif-jp font-black text-stone-900 leading-snug">--</h3>
+            <div id="tour-body" class="mt-1.5 text-sm text-stone-700 leading-relaxed space-y-1.5">--</div>
+            <div class="mt-4 flex items-center justify-between gap-2">
+                <div id="tour-dots" class="flex gap-1"></div>
+                <div class="flex gap-2">
+                    <button id="tour-prev" onclick="tourGo(-1)" class="px-3 py-1.5 rounded-xl text-xs font-bold text-stone-600 hover:bg-stone-200/70">上一步</button>
+                    <button id="tour-next" onclick="tourGo(1)" class="px-4 py-1.5 rounded-xl text-xs font-black bg-orange-600 hover:bg-orange-500 text-white">下一步</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -594,5 +623,6 @@
     <script defer src="js/18-toggles.js"></script>
     <script defer src="js/19-search-stamps.js"></script>
     <script defer src="js/20-boot.js"></script>
+    <script defer src="js/21-tour.js"></script>
 </body>
 </html>

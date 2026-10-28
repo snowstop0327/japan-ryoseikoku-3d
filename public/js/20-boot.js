@@ -36,6 +36,7 @@ function boot() {
 
     document.addEventListener('keydown', e => {
         if (e.key !== 'Escape') return;
+        if (tourOpen()) return;   // 教學進行中由教學自己處理 Esc
         hideModal('source-modal');
         hideModal('goshuin-modal');
         closeWardrobe();
