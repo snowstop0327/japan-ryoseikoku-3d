@@ -178,6 +178,45 @@ function fillDetailCard(prov) {
     switchDetailTab(currentDetailTab);
 }
 
+/* ---------- 🔊 日文朗讀：用瀏覽器內建的語音合成，唸平假名讀音（比直接唸漢字準） ---------- */
+let jaVoice = null;
+function pickJaVoice() {
+    const vs = speechSynthesis.getVoices();
+    jaVoice = vs.find(v => v.lang === 'ja-JP' && /Kyoko|O-ren|Google|Otoya/.test(v.name)) || vs.find(v => /^ja/i.test(v.lang)) || null;
+}
+if ('speechSynthesis' in window) {
+    pickJaVoice();
+    speechSynthesis.addEventListener('voiceschanged', pickJaVoice);
+}
+function speakJa(text, btn) {
+    if (!('speechSynthesis' in window)) return showToast('這個瀏覽器不支援語音朗讀');
+    speechSynthesis.cancel();
+    document.querySelectorAll('.speak-btn.speaking').forEach(b => b.classList.remove('speaking'));
+    const u = new SpeechSynthesisUtterance(text.replace(/・/g, '、'));
+    u.lang = 'ja-JP';
+    if (jaVoice) u.voice = jaVoice;
+    u.rate = 0.85;
+    if (btn) {
+        btn.classList.add('speaking');
+        u.onend = u.onerror = () => btn.classList.remove('speaking');
+    }
+    speechSynthesis.speak(u);
+    if (!jaVoice) showToast('這台裝置沒有日文語音，可能唸得不準；可到系統設定加裝日文語音');
+}
+// 神社・城的讀音列：🔊 按鈕＋平假名＋羅馬拼音
+function siteReadingRow(provId, short) {
+    const r = SITE_KANA[provId + '|' + short];
+    if (!r) return '';
+    return `
+        <div class="flex items-center gap-2 -mt-1.5">
+            <button onclick="speakJa('${r[0]}', this)" class="speak-btn" title="用日文唸出來">🔊</button>
+            <div class="min-w-0 leading-tight">
+                <div class="text-sm font-bold text-stone-600">${r[0]}</div>
+                <div class="text-[11px] font-semibold text-stone-400 italic">${r[1]}</div>
+            </div>
+        </div>`;
+}
+
 // 一社一城各自一張介紹卡
 function renderSiteCards(prov) {
     const sites = getSites(prov);
@@ -206,6 +245,7 @@ function renderSiteCards(prov) {
 
             <div class="site-photo relative aspect-[16/10] rounded-xl overflow-hidden bg-stone-200/70 animate-pulse" data-prov="${prov.id}" data-type="shrine" data-idx="${i}"></div>
             <h3 class="text-lg font-serif-jp font-black text-stone-900 leading-snug">${s.n}</h3>
+            ${siteReadingRow(prov.id, s.short)}
             <div class="grid grid-cols-1 gap-2 text-xs bg-white/95 p-3 rounded-xl border border-red-100">
                 ${row('主祭神', s.d)}
                 ${row('御神德・祈願利益', s.v, 'text-red-700 font-bold')}
@@ -228,6 +268,7 @@ function renderSiteCards(prov) {
 
             <div class="site-photo relative aspect-[16/10] rounded-xl overflow-hidden bg-stone-200/70 animate-pulse" data-prov="${prov.id}" data-type="castle" data-idx="${i}"></div>
             <h3 class="text-lg font-serif-jp font-black text-stone-900 leading-snug">${c.n}${sites.castles.length > 1 ? `<span class="text-xs text-stone-400 font-sans ml-1.5">${i + 1} / ${sites.castles.length}</span>` : ''}</h3>
+            ${siteReadingRow(prov.id, c.short)}
             <div class="grid grid-cols-1 gap-2 text-xs bg-white/95 p-3 rounded-xl border border-amber-100">
                 ${row('城郭結構與特色', c.y + (c.m && c.m.k === 'T' ? '（有天守）' : ''))}
                 ${row('歷代築城主・代表城主', c.l, 'text-amber-900 font-bold')}

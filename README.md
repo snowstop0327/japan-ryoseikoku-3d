@@ -44,6 +44,7 @@ src/style.css           自訂樣式（Tailwind 建置）
 public/js/              主程式，依檔名順序載入、共用全域範圍
   01-data-provinces.js    令制國、五畿七道與琉球資料
   02-data-sites.js        各國神社、城郭與名社資料
+  02b-site-readings.js    神社與城的日文讀音（朗讀用）
   03-state.js             狀態與御朱印儲存
   04-scene.js             場景、海與島嶼
   05-seasons.js           四季配色、河川湖泊
@@ -56,6 +57,7 @@ public/js/              主程式，依檔名順序載入、共用全域範圍
   12-walkers.js           路上的小人物
   13-weather.js           即時天氣（Open-Meteo）
   14-dog-quest.js         代參犬任務
+  14b-dog-encounters.js   代參犬的途中遭遇（選擇＋3D 小劇場）
   15-interaction.js       點擊、鏡頭、動畫迴圈
   16-ui.js                索引、介紹卡、維基百科照片
   17-traveler-card.js     旅人介紹卡

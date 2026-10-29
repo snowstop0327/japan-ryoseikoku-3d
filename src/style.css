@@ -114,3 +114,40 @@ body, html {
 .side-card { top: var(--card-top, 9rem) !important; }
 /* 窄螢幕底部有工具列，左側卡片底部讓出空間 */
 @media (max-width: 1279px) { .side-card { bottom: 4.75rem !important; } }
+
+/* 代參犬途中遭遇：鏡頭拉近時，只留下對話框，其他地圖名牌先藏起來 */
+body.enc-focus #labels-container > .map-label:not(.enc-bubble) {
+    visibility: hidden;
+}
+@media (max-width: 639px) {
+    body.enc-focus #dog-card {
+        top: 52vh !important;
+    }
+}
+
+/* 🔊 日文朗讀按鈕 */
+.speak-btn {
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    background: #fff7ed;
+    border: 1px solid #fdba74;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+.speak-btn:hover {
+    background: #ffedd5;
+    transform: scale(1.08);
+}
+.speak-btn.speaking {
+    background: #fb923c;
+    border-color: #ea580c;
+    animation: speak-pulse 0.9s ease-in-out infinite;
+}
+@keyframes speak-pulse {
+    50% { box-shadow: 0 0 0 6px rgba(251, 146, 60, 0.25); }
+}
