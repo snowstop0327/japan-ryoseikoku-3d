@@ -162,6 +162,7 @@ function createProvinceDioramaLandmarks() {
             shrine: [new THREE.Vector3(prov.mapX - 0.17, NODE_Y, prov.mapZ)],
             castle: [new THREE.Vector3(prov.mapX + 0.18, NODE_Y, prov.mapZ - 0.02)]
         };
+        prov._siteGroup = { shrine: [node], castle: [node] };   // 參拜拉近鏡頭時，這些群組不能被清場藏掉
         [['shrine', -0.17], ['castle', 0.18]].forEach(([type, x]) => {
             const hit = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.7, 0.76), hitMat);
             hit.position.set(x, 0.3, 0);
@@ -355,6 +356,7 @@ function createSatelliteSites(hitMat) {
             scene.add(path);
             provinceNodeMap.get(prov.id).satellites = (provinceNodeMap.get(prov.id).satellites || []).concat(mound);
             prov._sitePos[ex.type][ex.idx] = new THREE.Vector3(best.x, NODE_Y, best.z);
+            prov._siteGroup[ex.type][ex.idx] = g;
         });
     });
 

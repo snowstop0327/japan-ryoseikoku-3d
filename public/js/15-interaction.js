@@ -17,6 +17,9 @@ function setupRaycasterInteraction() {
         raycaster.setFromCamera(pointer, camera);
         const hits = raycaster.intersectObjects(clickableMeshes, false);
         if (!hits.length) return null;
+        // 參拜中：授與所優先（它在神社的點擊範圍裡面）
+        const booth = hits.find(h => h.object.userData.visitBooth);
+        if (booth) return booth.object.userData;
         const traveled = hits.find(h => h.object.userData.traveler);
         if (traveled) return '__traveler';
         if (hits.find(h => h.object.userData.dog)) return '__dog';
@@ -29,6 +32,12 @@ function setupRaycasterInteraction() {
     el.addEventListener('pointerup', e => {
         if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) return;
         const hit = pick(e);
+        if (visit) {
+            // 參拜中只處理拜殿與授與所，其他點擊不切換國
+            if (hit && hit.visitBooth) visitBoothClick();
+            else if (hit && hit.site && hit.provId === visit.provId && hit.site.type === visit.type && hit.site.idx === visit.idx) visitWorship();
+            return;
+        }
         if (hit === '__traveler') openTravelerCard();
         else if (hit === '__dog') openDogCard();
         else if (hit && hit.walker !== undefined) openWalkerCard(hit.walker);
@@ -115,6 +124,7 @@ function updateLabels() {
     siteLabels.forEach(s => placeLabel(s.el, s.anchor, near && s.provId === selectedProvinceId));
     placeWalkerLabels();
     placeDogLabel();
+    placeVisitLabels();
     placeWeatherLabels();
     if (travelerLabelEl && avatarGroup) {
         _travelerAnchor.copy(avatarGroup.position);
@@ -172,6 +182,7 @@ function animateLoop() {
 
     updateWalkers(dt, t);
     updateDog(dt, t);
+    updateVisit(dt, t);
     updateOrbitHold(dt);
     updateWaterfalls(dt, t);
 

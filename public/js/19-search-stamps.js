@@ -38,8 +38,8 @@ function toggleCurrentStamp() {
 
 function siteStampButtonHTML(type, stamped) {
     const isShrine = type === 'shrine';
-    if (stamped) return `<span class="w-full py-2 rounded-xl flex items-center justify-center gap-2 text-xs font-black ${isShrine ? 'bg-red-700 text-white' : 'bg-stone-900 text-white'}">${isShrine ? '💮 已領取御朱印' : '🏯 已領取御城印'}<span class="font-bold opacity-70">（再點一下取消）</span></span>`;
-    return `<span class="w-full py-2 rounded-xl flex items-center justify-center gap-2 text-xs font-black border-2 border-dashed ${isShrine ? 'border-red-300 text-red-700 hover:bg-red-100/60' : 'border-amber-400 text-amber-900 hover:bg-amber-100/60'} transition">${isShrine ? '⛩️ 領取御朱印' : '🏯 領取御城印'}</span>`;
+    if (stamped) return `<span class="w-full py-2 rounded-xl flex items-center justify-center gap-2 text-xs font-black ${isShrine ? 'bg-red-700 text-white' : 'bg-stone-900 text-white'}">${isShrine ? '💮 已拜領御朱印' : '🏯 已拜領御城印'}<span class="font-bold opacity-70">（看御朱印帳）</span></span>`;
+    return `<span class="w-full py-2 rounded-xl flex items-center justify-center gap-2 text-xs font-black border-2 border-dashed ${isShrine ? 'border-red-300 text-red-700 hover:bg-red-100/60' : 'border-amber-400 text-amber-900 hover:bg-amber-100/60'} transition">${isShrine ? '⛩️ 前往參拜・拜領御朱印' : '🏯 登城・拜領御城印'}</span>`;
 }
 function refreshSiteStampButtons(prov) {
     const st = getSites(prov);
@@ -48,52 +48,63 @@ function refreshSiteStampButtons(prov) {
         if (el) el.innerHTML = siteStampButtonHTML(type, stampedSites.has(siteStampKey(prov.id, type, s)));
     }));
 }
+// 介紹卡的按鈕：還沒拜領就前往參拜（見 19b-visit.js），拜領過就打開御朱印帳
 function toggleSiteStamp(provId, type, idx) {
     const prov = getProv(provId);
     const site = getSites(prov)[type === 'shrine' ? 'shrines' : 'castles'][idx];
-    const key = siteStampKey(provId, type, site);
-    const label = type === 'shrine' ? '御朱印' : '御城印';
-    if (stampedSites.has(key)) {
-        stampedSites.delete(key);
-        showToast(`已取消 ${site.short} 的${label}`);
-    } else {
-        stampedSites.add(key);
-        showToast(`${type === 'shrine' ? '💮' : '🏯'} 領取了 ${site.short} 的${label}！`);
-    }
-    saveStamps();
-    refreshSiteStampButtons(prov);
-    updateStampButton();
-    refreshStampMarks();
-    renderIndexList();
-    if (!document.getElementById('goshuin-modal').classList.contains('hidden')) renderGoshuinGrid();
+    if (stampedSites.has(siteStampKey(provId, type, site))) openGoshuinModal(type);
+    else startVisit(provId, type, idx);
 }
 
 // 御朱印帳：分「神社御朱印」與「城郭御城印」兩冊
 let goshuinTab = 'shrine';
 function switchGoshuinTab(type) {
     goshuinTab = type;
+    goshuinSpread = 0;
     renderGoshuinGrid();
 }
-function stampSeal(type, site, prov) {
-    // 御朱印：朱紅方印＋墨書社名；御城印：墨書城名＋朱印、和紙底
-    const name = site.short.replace(/\s/g, '');
-    const vertical = name.length <= 6 ? name.split('').join('<br>') : name;
-    if (type === 'shrine') return `
-        <div class="relative w-full aspect-[3/4] rounded-lg bg-[#fbf6ea] border border-stone-200 flex items-center justify-center overflow-hidden">
-            <span class="absolute top-1.5 right-2 text-[9px] font-serif-jp text-stone-500 [writing-mode:vertical-rl]">奉拜</span>
-            <span class="absolute w-14 h-14 rounded-md border-[3px] border-red-600/80 rotate-6 flex items-center justify-center text-red-600/80 font-serif-jp font-black text-[10px] leading-tight text-center">${shortOldName(prov).replace('國', '')}<br>${site.r && site.r !== '一之宮' ? '名社' : '一宮'}</span>
-            <span class="relative font-serif-jp font-black text-stone-900 text-base leading-tight text-center ${name.length > 6 ? 'text-xs px-1' : ''}">${vertical}</span>
-            <span class="absolute bottom-1.5 left-2 text-[8px] font-serif-jp text-stone-500 [writing-mode:vertical-rl]">令和八年</span>
-        </div>`;
-    return `
-        <div class="relative w-full aspect-[3/4] rounded-lg bg-[#f4ecd8] border-2 border-stone-700/70 flex items-center justify-center overflow-hidden">
-            <span class="absolute top-1.5 left-1/2 -translate-x-1/2 text-[9px] font-black tracking-widest text-stone-600">登城記念</span>
-            <span class="relative font-serif-jp font-black text-stone-900 text-base leading-tight text-center ${name.length > 6 ? 'text-xs px-1' : ''}">${vertical}</span>
-            <span class="absolute bottom-2 right-2 w-9 h-9 border-2 border-red-600/80 text-red-600/80 font-serif-jp font-black text-[8px] leading-tight flex items-center justify-center text-center -rotate-6">${(site.l || '').split(/[、・（]/)[0].slice(0, 4) || '城主'}</span>
-            <span class="absolute bottom-1.5 left-2 text-[8px] font-serif-jp text-stone-500">${shortOldName(prov)}</span>
-        </div>`;
+// 日期 → 「令和八年十一月十日」
+function reiwaDate(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const K = '〇一二三四五六七八九';
+    const num = n => n < 10 ? K[n] : n < 20 ? '十' + (n % 10 ? K[n % 10] : '') : K[Math.floor(n / 10)] + '十' + (n % 10 ? K[n % 10] : '');
+    const ry = y - 2018;
+    return `令和${ry === 1 ? '元' : num(ry)}年${num(m)}月${num(d)}日`;
 }
-function renderGoshuinGrid() {
+const SEASON_SEAL = { spring: '春詣', summer: '夏詣', autumn: '秋詣', winter: '冬詣' };
+// 一枚御朱印／御城印的版面（尺寸全用容器寬度換算，格子裡的小圖和蓋印時的大圖共用）
+//   御朱印：右上「奉拜」、中央墨書社名、朱色神紋＋國名方印、左下日期、左上季節印
+//   御城印：上方「登城記念」、中央朱色家紋＋墨書城名、右下城主方印、左下日期
+function goshuinFace(type, site, prov, meta) {
+    const name = site.short.replace(/\s/g, '');
+    const mon = SITE_MON[prov.id + '|' + site.short];
+    const crest = mon ? `<span class="gs-mon gs-seal" style="-webkit-mask-image:url(kamon/${mon}.png);mask-image:url(kamon/${mon}.png)"></span>` : '';
+    const date = meta && meta.d ? reiwaDate(meta.d) : '';
+    const season = meta && meta.s ? `<span class="gs-season gs-seal">${SEASON_SEAL[meta.s]}</span>` : '';
+    const size = name.length <= 3 ? 2.6 : name.length <= 4 ? 2.2 : name.length <= 6 ? 1.7 : name.length <= 9 ? 1.3 : 1.0;
+    if (type === 'shrine') return `
+        <div class="gs-face gs-shrine ${mon ? 'has-mon' : ''}"><div class="gs-in">
+            <span class="gs-hohai gs-ink">奉拜</span>
+            ${season}
+            ${crest}
+            <span class="gs-square gs-seal">${shortOldName(prov).replace(/國$/, '')}<br>國</span>
+            <span class="gs-name gs-ink" style="font-size:${size}em">${name}</span>
+            <span class="gs-date gs-ink">${date}</span>
+        </div></div>`;
+    // 方印：有家紋就寫同一家的家名，否則取第一位城主
+    const lord = SITE_HOUSE[prov.id + '|' + site.short] || (site.l || '').split(/[、・／\/（(]/)[0].trim().slice(0, 4);
+    return `
+        <div class="gs-face gs-castle ${mon ? 'has-mon' : ''}"><div class="gs-in">
+            <span class="gs-tojo gs-ink">登城記念</span>
+            ${crest}
+            <span class="gs-name gs-ink" style="font-size:${size}em">${name}</span>
+            <span class="gs-lord gs-seal">${lord || '登城'}</span>
+            <span class="gs-date gs-ink">${date}</span>
+            <span class="gs-prov gs-ink">${shortOldName(prov)}</span>
+        </div></div>`;
+}
+// 一覽：全部神社／城的格子（總繪製 renderGoshuinGrid 在 19c-goshuin-book.js）
+function renderGoshuinList() {
     const type = goshuinTab;
     ['shrine', 'castle'].forEach(k => {
         const b = document.getElementById('gs-tab-' + k);
@@ -114,7 +125,7 @@ function renderGoshuinGrid() {
         const stamped = stampedSites.has(key);
         html += `
             <button onclick="closeGoshuinModal(); focusSite('${prov.id}', '${type}', ${idx})" class="text-left p-2 rounded-2xl border-2 transition ${stamped ? (type === 'shrine' ? 'border-red-300 bg-red-50/70' : 'border-stone-400 bg-amber-50/70') : 'border-dashed border-stone-300 bg-white/50 hover:border-orange-300'}">
-                ${stamped ? stampSeal(type, site, prov) : `<div class="w-full aspect-[3/4] rounded-lg border border-dashed border-stone-300 flex flex-col items-center justify-center gap-1 text-stone-300"><span class="text-2xl">${type === 'shrine' ? '⛩️' : '🏯'}</span><span class="text-[10px] font-bold">未領取</span></div>`}
+                ${stamped ? goshuinFace(type, site, prov, stampMeta[key]) : `<div class="w-full aspect-[3/4] rounded-lg border border-dashed border-stone-300 flex flex-col items-center justify-center gap-1 text-stone-300"><span class="text-2xl">${type === 'shrine' ? '⛩️' : '🏯'}</span><span class="text-[10px] font-bold">未領取</span></div>`}
                 <div class="mt-1.5 text-[11px] font-black text-stone-800 truncate">${site.short}</div>
                 <div class="text-[10px] text-stone-400 truncate">${shortOldName(prov)}${type === 'shrine' && site.r ? '・' + site.r : ''}</div>
             </button>`;

@@ -1516,9 +1516,9 @@ function encBlocks(p, r, A, B) {
     const qx = A.x + dx * k, qz = A.z + dz * k;
     return Math.hypot(p.x - qx, p.z - qz) < 0.09 + r * 0.7 && p.y + r > A.y;
 }
-function encClearView(A, B) {
+function encClearView(A, B, keep) {
     const hidden = { meshes: [], inst: [] };
-    const skip = new Set([enc.stage, dog.group]);
+    const skip = new Set(keep || [enc.stage, dog.group]);   // keep：不要藏的群組（參拜時是舞台與那座神社本身）
     scene.traverse(o => {
         if (!o.isMesh || !o.visible) return;
         for (let q = o; q; q = q.parent) if (skip.has(q)) return;

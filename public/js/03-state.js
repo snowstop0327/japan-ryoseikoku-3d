@@ -19,6 +19,8 @@ let stampedProvinces = new Set();      // 至少收到一枚印的國（地圖�
 
 const STORAGE_KEY = 'shinkoku_meijo_69_stamps_v4';          // 舊版：以國為單位
 const SITE_STAMP_KEY = 'shinkoku_meijo_site_stamps_v1';
+const STAMP_META_KEY = 'shinkoku_meijo_stamp_meta_v1';       // 每一枚的拜領日期與季節 { key: { d:'2026-11-10', s:'autumn' } }
+let stampMeta = {};
 function siteStampKey(provId, type, site) {
     return `${provId}|${type}|${site.short}`;
 }
@@ -48,12 +50,15 @@ function loadStamps() {
     } catch (e) {
         stampedSites = new Set();
     }
+    try { stampMeta = JSON.parse(localStorage.getItem(STAMP_META_KEY) || '{}'); } catch (e) { stampMeta = {}; }
     recomputeProvinceStamps();
     updateStampUI();
 }
 function saveStamps() {
     try {
         localStorage.setItem(SITE_STAMP_KEY, JSON.stringify([...stampedSites]));
+        Object.keys(stampMeta).forEach(k => { if (!stampedSites.has(k)) delete stampMeta[k]; });
+        localStorage.setItem(STAMP_META_KEY, JSON.stringify(stampMeta));
     } catch (e) {}
     recomputeProvinceStamps();
     updateStampUI();

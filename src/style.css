@@ -151,3 +151,181 @@ body.enc-focus #labels-container > .map-label:not(.enc-bubble) {
 @keyframes speak-pulse {
     50% { box-shadow: 0 0 0 6px rgba(251, 146, 60, 0.25); }
 }
+
+/* 御朱印・御城印的版面：字級跟著容器寬度（cqw）縮放，帳本小圖與蓋印大圖共用 */
+.gs-face {
+    container-type: inline-size;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #fbf6ea;
+    border: 1px solid #e7e0d0;
+}
+.gs-castle {
+    background: #f4ecd8;
+    border: 2px solid rgba(68, 64, 60, 0.7);
+}
+.gs-in {
+    position: absolute;
+    inset: 0;
+    font-size: 8cqw;
+    font-family: "Yuji Syuku", "Noto Serif TC", serif;
+    color: #1c1917;
+}
+.gs-in > span { position: absolute; }
+.gs-name {
+    top: 10%;
+    left: 50%;
+    height: 80%;
+    transform: translateX(-50%);
+    writing-mode: vertical-rl;
+    text-align: center;
+    line-height: 1.12;
+    white-space: nowrap;
+    z-index: 2;
+}
+.gs-hohai { top: 6%; right: 7%; writing-mode: vertical-rl; font-size: 1.05em; letter-spacing: 0.2em; }
+.gs-date { bottom: 5%; left: 6%; writing-mode: vertical-rl; font-size: 0.62em; letter-spacing: 0.06em; }
+.gs-tojo { top: 5%; left: 0; right: 0; text-align: center; font-size: 0.7em; letter-spacing: 0.3em; }
+.gs-prov { top: 15%; right: 7%; writing-mode: vertical-rl; font-size: 0.6em; color: #57534e; }
+.gs-mon {
+    left: 50%;
+    top: 13%;
+    width: 48%;
+    aspect-ratio: 1;
+    transform: translateX(-50%);
+    background: #c1272d;
+    opacity: 0.85;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+.gs-castle .gs-mon { top: 21%; width: 62%; opacity: 0.8; }
+.gs-square {
+    left: 50%;
+    bottom: 8%;
+    width: 26%;
+    aspect-ratio: 1;
+    transform: translateX(-50%) rotate(-3deg);
+    border: 0.2em solid #c1272d;
+    border-radius: 0.15em;
+    color: #c1272d;
+    font-size: 0.72em;
+    font-weight: 700;
+    line-height: 1.05;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    opacity: 0.85;
+}
+/* 沒有查到神紋的神社：國名方印放大置中 */
+.gs-shrine:not(.has-mon) .gs-square { bottom: auto; top: 50%; width: 46%; font-size: 1.15em; transform: translate(-50%, -50%) rotate(-3deg); }
+.gs-season {
+    top: 6%;
+    left: 7%;
+    width: 2.6em;
+    height: 2.6em;
+    border: 0.12em solid #c1272d;
+    border-radius: 50%;
+    color: #c1272d;
+    font-size: 0.6em;
+    line-height: 1;
+    writing-mode: vertical-rl;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
+}
+.gs-lord {
+    right: 7%;
+    bottom: 7%;
+    width: 2.7em;
+    height: 2.7em;
+    transform: rotate(-6deg);
+    border: 0.16em solid #c1272d;
+    color: #c1272d;
+    font-size: 0.55em;
+    line-height: 1.05;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    word-break: break-all;
+    opacity: 0.85;
+}
+/* 蓋印儀式：紙張出現 → 朱印「咚」地壓下 → 墨字由上往下寫出來 */
+.gs-anim .gs-face { animation: gs-paper 0.4s ease-out both; }
+.gs-anim .gs-seal { animation: gs-stamp 0.5s 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) backwards; }
+.gs-anim .gs-ink { animation: gs-write 1.3s 1.1s ease-out backwards; }
+.gs-ok { animation: gs-paper 0.4s 2.4s ease-out backwards; }
+@keyframes gs-paper { from { opacity: 0; translate: 0 14px; } }
+@keyframes gs-stamp { from { opacity: 0; scale: 1.8; } }
+@keyframes gs-write { from { clip-path: inset(0 0 100% 0); opacity: 0.2; } to { clip-path: inset(0 0 0 0); } }
+
+/* 御朱印帳・折本：封面、跨頁、翻頁 */
+.gs-cover {
+    position: relative;
+    width: min(230px, 62vw);
+    aspect-ratio: 3 / 4.3;
+    border-radius: 6px 12px 12px 6px;
+    box-shadow: inset 8px 0 10px -6px rgba(0, 0, 0, 0.35), 0 14px 28px -8px rgba(28, 25, 23, 0.45);
+    transition: transform 0.2s ease;
+}
+.gs-cover:hover { transform: translateY(-3px) rotate(-1deg); }
+.gs-cover-title {
+    position: absolute;
+    top: 9%;
+    left: 12%;
+    padding: 0.9em 0.45em;
+    background: #fbf6ea;
+    border: 1px solid #d6cdb8;
+    writing-mode: vertical-rl;
+    font-family: "Yuji Syuku", "Noto Serif TC", serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.25em;
+    color: #1c1917;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+.gs-spread {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    margin: 0 auto;
+    padding: 14px 16px;
+    width: min(540px, 100%, 68vh);   /* 視窗矮的時候跟著縮，整個跨頁才看得完 */
+    border-radius: 10px;
+    background: linear-gradient(90deg, #e9dfc8, #f6efe0 46%, #d9cdb2 50%, #f6efe0 54%, #e9dfc8);
+    box-shadow: 0 14px 28px -10px rgba(28, 25, 23, 0.4);
+    perspective: 1200px;
+}
+.gs-page { flex: 1; min-width: 0; padding: 0 10px; }
+.gs-fold { width: 1px; background: rgba(120, 100, 70, 0.35); }
+.gs-blank { background: #f6efe0; border-style: dashed; opacity: 0.6; }
+.gs-mangan { background: #fdf3d7; border: 2px solid #c1272d; }
+.gs-mangan-seal {
+    left: 50%;
+    top: 12%;
+    width: 46%;
+    aspect-ratio: 1;
+    transform: translateX(-50%) rotate(-4deg);
+    border: 0.28em double #c1272d;
+    border-radius: 50%;
+    color: #c1272d;
+    font-size: 1.5em;
+    line-height: 1.05;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    opacity: 0.85;
+}
+.gs-flip-fwd { animation: gs-flip-fwd 0.45s ease-out; }
+.gs-flip-back { animation: gs-flip-back 0.45s ease-out; }
+@keyframes gs-flip-fwd { from { opacity: 0; transform: perspective(1200px) rotateY(-70deg) translateX(40px); } }
+@keyframes gs-flip-back { from { opacity: 0; transform: perspective(1200px) rotateY(70deg) translateX(-40px); } }

@@ -7,7 +7,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&family=Yuji+Syuku&display=swap" rel="stylesheet">
     <!-- 樣式（Tailwind 建置）與 Three.js：由 Vite 打包，並把 THREE 掛到全域給下方程式使用 -->
     <script type="module" src="/src/main.js"></script>
 
@@ -217,6 +217,7 @@
                 <div id="pop-help" class="tb-pop hidden absolute right-0 top-12 cream-card rounded-2xl p-2 w-[180px]">
                     <button onclick="togglePop('pop-help'); startTour()" class="layer-row"><span>🎓 操作教學</span></button>
                     <button onclick="togglePop('pop-help'); openSourceModal()" class="layer-row"><span>📚 資料來源與考據</span></button>
+                    <button onclick="togglePop('pop-help'); openBackupModal()" class="layer-row"><span>💾 備份與移轉紀錄</span></button>
                 </div>
             </div>
         </div>
@@ -604,6 +605,14 @@
                         👉 日本城郭協会「日本100名城・続日本100名城」名錄
                     </a>
                 </div>
+
+                <div class="p-4 rounded-2xl bg-white border border-stone-200">
+                    <div class="font-black text-red-800 mb-1">4. 御朱印・御城印上的神紋與家紋</div>
+                    <p>朱印使用的神紋、家紋圖檔取自 Wikimedia Commons，依各檔案的授權（CC BY-SA 3.0／4.0 或公有領域）使用，未經修改。只有查得到確切紋樣的神社與城才蓋紋，其餘改蓋國名或城主方印。</p>
+                    <a href="kamon/CREDITS.md" target="_blank" rel="noopener noreferrer" class="inline-block mt-1.5 font-bold text-red-700 underline">
+                        👉 各紋的原始檔、作者與授權一覽
+                    </a>
+                </div>
             </div>
 
             <div class="pt-2 flex justify-end">
@@ -632,12 +641,22 @@
                 <button id="gs-tab-shrine" onclick="switchGoshuinTab('shrine')">⛩️ 神社御朱印 <span id="gs-count-shrine" class="text-xs opacity-80">--</span></button>
                 <button id="gs-tab-castle" onclick="switchGoshuinTab('castle')">🏯 城郭御城印 <span id="gs-count-castle" class="text-xs opacity-80">--</span></button>
             </div>
+            <div class="flex gap-1.5">
+                <button id="gs-view-book" onclick="switchGoshuinView('book')">📖 折本</button>
+                <button id="gs-view-list" onclick="switchGoshuinView('list')">🗂 一覽</button>
+                <button id="gs-view-sets" onclick="switchGoshuinView('sets')">🏅 滿願</button>
+            </div>
+            <div id="goshuin-book" class="overflow-y-auto p-1 flex-1 min-h-[300px]"></div>
             <div id="goshuin-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 overflow-y-auto p-1 flex-1"></div>
+            <div id="goshuin-sets" class="overflow-y-auto p-1 flex-1 space-y-3"></div>
 
             <div class="pt-3 border-t border-stone-200 flex items-center justify-between">
-                <button onclick="clearAllStamps()" class="text-xs font-bold text-stone-400 hover:text-red-600 transition">
-                    重置所有御朱印與御城印
-                </button>
+                <div class="flex items-center gap-3">
+                    <button onclick="openBackupModal()" class="px-3 py-2 rounded-2xl bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-xs font-black transition">💾 備份與移轉</button>
+                    <button onclick="clearAllStamps()" class="text-xs font-bold text-stone-400 hover:text-red-600 transition">
+                        重置
+                    </button>
+                </div>
                 <button onclick="closeGoshuinModal()" class="px-6 py-2 rounded-2xl bg-stone-900 text-white text-xs font-bold">
                     闔上御朱印帳
                 </button>
@@ -704,6 +723,7 @@
     <script defer src="js/01-data-provinces.js"></script>
     <script defer src="js/02-data-sites.js"></script>
     <script defer src="js/02b-site-readings.js"></script>
+    <script defer src="js/02c-site-crests.js"></script>
     <script defer src="js/03-state.js"></script>
     <script defer src="js/04-scene.js"></script>
     <script defer src="js/05-seasons.js"></script>
@@ -722,6 +742,9 @@
     <script defer src="js/17-traveler-card.js"></script>
     <script defer src="js/18-toggles.js"></script>
     <script defer src="js/19-search-stamps.js"></script>
+    <script defer src="js/19b-visit.js"></script>
+    <script defer src="js/19c-goshuin-book.js"></script>
+    <script defer src="js/19d-backup.js"></script>
     <script defer src="js/20-boot.js"></script>
     <script defer src="js/21-tour.js"></script>
 </body>

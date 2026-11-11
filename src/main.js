@@ -3,5 +3,8 @@
 import './style.css';
 import * as THREE_MODULE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import QRCode from 'qrcode';
 
 window.THREE = Object.assign({}, THREE_MODULE, { OrbitControls });
+// 備份與移轉的 QR code（見 public/js/19d-backup.js）
+window.QRCode = QRCode;

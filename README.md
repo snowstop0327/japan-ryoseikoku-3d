@@ -45,6 +45,7 @@ public/js/              主程式，依檔名順序載入、共用全域範圍
   01-data-provinces.js    令制國、五畿七道與琉球資料
   02-data-sites.js        各國神社、城郭與名社資料
   02b-site-readings.js    神社與城的日文讀音（朗讀用）
+  02c-site-crests.js      神紋・家紋對照（圖檔在 public/kamon/，來源見該資料夾 CREDITS.md）
   03-state.js             狀態與御朱印儲存
   04-scene.js             場景、海與島嶼
   05-seasons.js           四季配色、河川湖泊
@@ -63,6 +64,9 @@ public/js/              主程式，依檔名順序載入、共用全域範圍
   17-traveler-card.js     旅人介紹卡
   18-toggles.js           工具列開關、視角控制
   19-search-stamps.js     搜尋、御朱印帳、彈窗
+  19b-visit.js            參拜、找授與所／番所、拜領御朱印・御城印的流程
+  19c-goshuin-book.js     御朱印帳的折本、封面布料與滿願（成套收集）
+  19d-backup.js           備份與移轉（備份檔、移轉碼、QR code），不用註冊
   20-boot.js              啟動
   21-tour.js              第一次開啟時的操作教學
 ```
