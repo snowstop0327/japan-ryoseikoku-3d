@@ -57,7 +57,7 @@ public/js/              主程式，依檔名順序載入、共用全域範圍
   10-sky-sea.js           雲、海鷗、船
   11-wardrobe.js          旅人與換裝
   12-walkers.js           路上的小人物
-  13-weather.js           即時天氣（Open-Meteo）
+  13-weather.js           即時天氣（日本氣象廳 AMeDAS，備援 Open-Meteo）
   14-dog-quest.js         代參犬任務
   14b-dog-encounters.js   代參犬的途中遭遇（選擇＋3D 小劇場）
   15-interaction.js       點擊、鏡頭、動畫迴圈
@@ -77,5 +77,5 @@ public/js/              主程式，依檔名順序載入、共用全域範圍
 
 ## 資料來源
 
-- 天氣：[Open-Meteo](https://open-meteo.com/)
+- 天氣：[日本氣象廳](https://www.jma.go.jp/)（AMeDAS 觀測與全國天氣概況），備援 [Open-Meteo](https://open-meteo.com/)
 - 照片：日文維基百科／[Wikimedia Commons](https://commons.wikimedia.org/)（各照片依其授權標示出處）

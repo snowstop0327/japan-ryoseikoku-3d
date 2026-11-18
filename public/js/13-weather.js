@@ -2,7 +2,7 @@
 // 這些檔案以一般 <script defer> 依序載入、共用同一個全域範圍（順序見 index.html）。
 
 /***********************************************************************
- * 即時天氣：串接 Open-Meteo（免金鑰），依各國實際經緯度查詢目前天氣，
+ * 即時天氣：串接日本氣象廳的公開資料（連不上時改用 Open-Meteo），依各國實際經緯度查詢目前天氣，
  *   在地圖上顯示天氣標籤、烏雲、雨絲、雪花、霧與雷雨閃電
  ***********************************************************************/
 // 各國代表地點的實際經緯度（國府・城下町或今日主要城市）
@@ -50,53 +50,133 @@ const thunderClouds = [];
 const weatherClouds = [];
 const weatherLabels = {};
 
-// Open-Meteo 偶爾很慢或連不上：每次最多等 12 秒、失敗自動再試一次；
-// 成功的資料存在這台瀏覽器，之後連不上時先拿 6 小時內的舊資料來用
+// 天氣來源：先用日本氣象廳（JMA）的公開資料，連不上再改用 Open-Meteo；
+// 兩邊都失敗時，拿這台瀏覽器存的 6 小時內舊資料來用
 const WEATHER_CACHE_KEY = 'ryoseikoku_weather_cache_v1';   // 不用 shinkoku_ 開頭，備份時才不會帶到
 let weatherStaleAt = 0;                                    // 正在用舊資料時，記下那份資料的取得時間
-async function fetchJsonTimeout(url, ms) {
+let weatherSource = '';
+async function fetchJsonTimeout(url, ms, text = false) {
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), ms);
     try {
         const res = await fetch(url, { signal: ac.signal });
         if (!res.ok) throw new Error('HTTP ' + res.status);
-        return await res.json();
+        return await (text ? res.text() : res.json());
     } finally {
         clearTimeout(timer);
     }
 }
-async function fetchWeather() {
-    const ids = PROVINCES_DATA.map(p => p.id).filter(id => PROV_LATLON[id]);
+
+/* ---------- 日本氣象廳 ----------
+ *   AMeDAS（全國約 1,300 個觀測站，每 10 分鐘更新）：氣溫、雨量、風速、日照
+ *   全國天氣概況（22 個地方的今日預報）：晚上沒有日照可看時，用來判斷晴或陰
+ *   兩者都允許網頁直接讀取（CORS），不需要金鑰 */
+const JMA = 'https://www.jma.go.jp/bosai';
+// 全國概況裡 22 個地方預報的代表地點
+const JMA_REGION_LATLON = {
+    '014100': [42.98, 144.38], '012000': [43.77, 142.37], '016000': [43.06, 141.35], '020000': [40.82, 140.74], '050000': [39.72, 140.1],
+    '040000': [38.27, 140.87], '150000': [37.92, 139.04], '170000': [36.56, 136.65], '130000': [35.69, 139.69], '090000': [36.56, 139.88],
+    '200000': [36.65, 138.18], '230000': [35.18, 136.9], '270000': [34.69, 135.5], '370000': [34.34, 134.05], '320000': [35.47, 133.05],
+    '340000': [34.39, 132.46], '390000': [33.56, 133.53], '400000': [33.59, 130.4], '460100': [31.6, 130.56], '460040': [28.38, 129.49],
+    '471000': [26.21, 127.68], '474000': [24.34, 124.16]
+};
+let _amedasNear = null;   // 各國最近的幾個觀測站（第一次查詢時算一次）
+const kmBetween = (a, b) => Math.hypot((a[0] - b[0]) * 111, (a[1] - b[1]) * 111 * Math.cos(a[0] * Math.PI / 180));
+async function fetchWeatherJMA(ids) {
+    const latest = (await fetchJsonTimeout(`${JMA}/amedas/data/latest_time.txt`, 8000, true)).trim();   // 2026-11-18T16:10:00+09:00
+    const stamp = latest.slice(0, 19).replace(/[-T:]/g, '');
+    const [obs, overview, table] = await Promise.all([
+        fetchJsonTimeout(`${JMA}/amedas/data/map/${stamp}.json`, 12000),
+        fetchJsonTimeout(`${JMA}/forecast/data/forecast/010000.json`, 12000).catch(() => []),
+        _amedasNear ? null : fetchJsonTimeout(`${JMA}/amedas/const/amedastable.json`, 12000)
+    ]);
+    if (table) {
+        const st = Object.entries(table).map(([id, t]) => ({ id, ll: [t.lat[0] + t.lat[1] / 60, t.lon[0] + t.lon[1] / 60] }));
+        _amedasNear = {};
+        ids.forEach(pid => {
+            _amedasNear[pid] = st.map(x => ({ id: x.id, km: kmBetween(PROV_LATLON[pid], x.ll) })).sort((a, b) => a.km - b.km).slice(0, 8);
+        });
+    }
+    // 地方預報：今天的天氣代碼（1xx 晴、2xx 陰、3xx 雨、4xx 雪）
+    const regions = [];
+    (overview || []).forEach(o => {
+        const ts = o.srf && o.srf.timeSeries && o.srf.timeSeries[0];
+        const area = ts && (Array.isArray(ts.areas) ? ts.areas[0] : ts.areas);
+        if (area && JMA_REGION_LATLON[o.officeCode]) regions.push({ ll: JMA_REGION_LATLON[o.officeCode], code: String(area.weatherCodes[0] || '') });
+    });
+    const hour = +latest.slice(11, 13);
+    const val = (x, k) => x && Array.isArray(x[k]) && x[k][0] !== null && x[k][1] === 0 ? x[k][0] : null;
+    const data = {};
+    ids.forEach(pid => {
+        const near = _amedasNear[pid].map(n => ({ km: n.km, o: obs[n.id] })).filter(n => n.o);
+        const first = k => { const n = near.find(n => val(n.o, k) !== null); return n ? val(n.o, k) : null; };
+        const temp = first('temp');
+        if (temp === null) return;
+        // 雨量取 30 公里內最大值（才不會剛好錯過下雨的那一站）；日照取 40 公里內平均
+        const pr = near.filter(n => n.km < 30).map(n => val(n.o, 'precipitation1h')).filter(v => v !== null);
+        const precip = pr.length ? Math.max(...pr) : (first('precipitation1h') || 0);
+        const sun = near.filter(n => n.km < 40).map(n => val(n.o, 'sun1h')).filter(v => v !== null).slice(0, 3);
+        let code;
+        if (precip > 0) code = temp <= 1.5 ? (precip >= 3 ? 73 : 71) : precip >= 10 ? 65 : precip >= 3 ? 63 : 61;
+        else if (sun.length && hour >= 9 && hour <= 15) {
+            const s = sun.reduce((a, b) => a + b, 0) / sun.length;
+            code = s >= 0.9 ? 0 : s >= 0.6 ? 1 : s >= 0.2 ? 2 : 3;
+        } else {
+            const r = regions.slice().sort((a, b) => kmBetween(PROV_LATLON[pid], a.ll) - kmBetween(PROV_LATLON[pid], b.ll))[0];
+            const c = r ? r.code : '';
+            code = c === '100' ? 0 : c[0] === '1' ? 1 : ['201', '210', '211'].includes(c) ? 2 : 3;
+        }
+        data[pid] = {
+            temp, code, precip, cloud: null, wind: first('wind') || 0, isDay: hour >= 6 && hour < 17 ? 1 : 0, time: latest,
+            sun: sun.length ? Math.round(sun.reduce((a, b) => a + b, 0) / sun.length * 60) : null
+        };
+    });
+    if (Object.keys(data).length < ids.length * 0.8) throw new Error('JMA data incomplete');
+    return { data, time: latest.slice(11, 16), source: '日本氣象廳 AMeDAS' };
+}
+
+/* ---------- Open-Meteo（備援） ---------- */
+async function fetchWeatherOpenMeteo(ids) {
     const lat = ids.map(id => PROV_LATLON[id][0]).join(',');
     const lon = ids.map(id => PROV_LATLON[id][1]).join(',');
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,precipitation,cloud_cover,wind_speed_10m,is_day&wind_speed_unit=ms&timezone=Asia%2FTokyo`;
-    let json;
+    const json = await fetchJsonTimeout(url, 12000);
+    const data = {};
+    let time = '';
+    (Array.isArray(json) ? json : [json]).forEach((item, i) => {
+        const cur = item.current;
+        if (!cur) return;
+        data[ids[i]] = {
+            temp: cur.temperature_2m, code: cur.weather_code, precip: cur.precipitation,
+            cloud: cur.cloud_cover, wind: cur.wind_speed_10m, isDay: cur.is_day, time: cur.time
+        };
+        time = (cur.time || '').slice(11, 16);
+    });
+    return { data, time, source: 'Open-Meteo' };
+}
+
+async function fetchWeather() {
+    const ids = PROVINCES_DATA.map(p => p.id).filter(id => PROV_LATLON[id]);
+    let got;
     try {
-        json = await fetchJsonTimeout(url, 12000).catch(() => new Promise(r => setTimeout(r, 1500)).then(() => fetchJsonTimeout(url, 15000)));
+        got = await fetchWeatherJMA(ids).catch(() => fetchWeatherOpenMeteo(ids));
     } catch (e) {
         let cache = null;
         try { cache = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY) || 'null'); } catch (err) {}
         if (!cache || Date.now() - cache.at > 6 * 3600 * 1000) throw e;
         weatherData = cache.data;
         weatherTime = cache.time;
+        weatherSource = cache.source || '';
         weatherStaleAt = cache.at;
         weatherFetchedAt = Date.now() - 8 * 60 * 1000;   // 兩分鐘後可以再試
         return;
     }
-    const list = Array.isArray(json) ? json : [json];
-    weatherData = {};
-    list.forEach((item, i) => {
-        const cur = item.current;
-        if (!cur) return;
-        weatherData[ids[i]] = {
-            temp: cur.temperature_2m, code: cur.weather_code, precip: cur.precipitation,
-            cloud: cur.cloud_cover, wind: cur.wind_speed_10m, isDay: cur.is_day, time: cur.time
-        };
-        weatherTime = (cur.time || '').slice(11, 16);
-    });
+    weatherData = got.data;
+    weatherTime = got.time;
+    weatherSource = got.source;
     weatherFetchedAt = Date.now();
     weatherStaleAt = 0;
-    try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ at: weatherFetchedAt, time: weatherTime, data: weatherData })); } catch (e) {}
+    try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ at: weatherFetchedAt, time: weatherTime, source: weatherSource, data: weatherData })); } catch (e) {}
 }
 
 async function toggleWeather() {
@@ -131,7 +211,7 @@ async function refreshWeather(announce) {
         else if (announce) showToast(`即時天氣已更新（日本時間 ${weatherTime}）：${raining} 國下雨、${snowing} 國下雪`);
         if (selectedProvinceId) renderDetailWeather(getProv(selectedProvinceId));
     } catch (e) {
-        showToast('天氣服務（Open-Meteo）暫時連不上，請過幾分鐘再試');
+        showToast('天氣服務暫時連不上（氣象廳與 Open-Meteo 都沒有回應），請過幾分鐘再試');
         weatherOn = false;
         setToolbarBtn('btn-weather', false);
     }
@@ -291,6 +371,6 @@ function renderDetailWeather(prov) {
     el.classList.remove('hidden');
     el.innerHTML = `<span class="text-base leading-none">${info.icon}</span>
         <span class="font-black text-stone-900">${info.label}　${w.temp.toFixed(1)}°C</span>
-        <span class="text-stone-500">降水 ${w.precip} mm・雲量 ${w.cloud}%・風 ${w.wind.toFixed(1)} m/s</span>
-        <span class="text-[10px] text-stone-400 w-full">日本時間 ${weatherTime} 更新・資料來源 Open-Meteo</span>`;
+        <span class="text-stone-500">降水 ${w.precip} mm${w.cloud !== null && w.cloud !== undefined ? `・雲量 ${w.cloud}%` : ''}${w.sun !== null && w.sun !== undefined && w.isDay ? `・日照 ${w.sun} 分／時` : ''}・風 ${w.wind.toFixed(1)} m/s</span>
+        <span class="text-[10px] text-stone-400 w-full">日本時間 ${weatherTime} 更新・資料來源 ${weatherSource || 'Open-Meteo'}</span>`;
 }
