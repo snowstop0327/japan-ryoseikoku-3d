@@ -329,3 +329,9 @@ body.enc-focus #labels-container > .map-label:not(.enc-bubble) {
 .gs-flip-back { animation: gs-flip-back 0.45s ease-out; }
 @keyframes gs-flip-fwd { from { opacity: 0; transform: perspective(1200px) rotateY(-70deg) translateX(40px); } }
 @keyframes gs-flip-back { from { opacity: 0; transform: perspective(1200px) rotateY(70deg) translateX(-40px); } }
+
+/* 地圖上的山・湖・河名牌：可以點，滑過放大；介紹卡打開中的那一個加上橘框 */
+.geo-label .geo-pill { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.geo-label:hover .geo-pill { transform: scale(1.12); box-shadow: 0 4px 10px rgba(28, 25, 23, 0.2); }
+.geo-label.geo-active .geo-pill { outline: 2px solid #ea580c; outline-offset: 1px; background: #fff7ed; }
+.geo-label.geo-active { z-index: 30; }

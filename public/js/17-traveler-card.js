@@ -18,6 +18,8 @@ function setCardVisible(id, visible) {
         const dc = document.getElementById('dog-card');
         if (dc && !dc.classList.contains('opacity-0')) closeDogCard();
     }
+    // 開別的卡時收起山川介紹卡
+    if (visible && id !== 'geo-card' && typeof geoCardName !== 'undefined' && geoCardName) closeGeoCard();
 }
 
 function openTravelerCard() {

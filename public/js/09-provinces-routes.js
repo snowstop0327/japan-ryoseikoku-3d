@@ -290,13 +290,15 @@ function createGeoLabels() {
             ? 'text-stone-700 bg-white/75 border-stone-300/80'
             : 'text-sky-900 bg-sky-50/85 border-sky-200';
         const icon = g.type === 'mountain' ? '▲' : g.type === 'lake' ? '◍' : '〰';
+        g.title = `點一下看${g.name}的介紹`;
         el.innerHTML = `
             <div class="map-label-inner">
-                <div class="px-1.5 py-0.5 rounded-md text-[10px] font-bold tracking-wide whitespace-nowrap border shadow-sm font-serif-jp ${style}">
+                <div title="${g.title}" class="geo-pill px-1.5 py-0.5 rounded-md text-[10px] font-bold tracking-wide whitespace-nowrap border shadow-sm font-serif-jp ${style}">
                     <span class="${g.type === 'mountain' ? 'text-emerald-700' : 'text-sky-600'}">${icon}</span> ${g.name}
                 </div>
             </div>`;
-        el.style.pointerEvents = 'none';
+        el.classList.add('geo-label');
+        el.addEventListener('click', e => { e.stopPropagation(); openGeoCard(g.name); });
         container.appendChild(el);
         g.el = el;
         g.anchor = new THREE.Vector3(g.x, g.y, g.z);

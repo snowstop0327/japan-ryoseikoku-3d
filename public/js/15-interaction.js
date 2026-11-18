@@ -117,8 +117,8 @@ function updateLabels() {
     GEO_LABELS.forEach(g => {
         if (!g.el) return;
         const d = camera.position.distanceTo(g.anchor);
-        placeLabel(g.el, g.anchor, showGeoLabels && (g.major ? d < 45 : d < 16));
-        g.el.style.pointerEvents = 'none';
+        // 介紹卡打開中的那一個一定顯示
+        placeLabel(g.el, g.anchor, g.name === geoCardName || (showGeoLabels && (g.major ? d < 45 : d < 16)));
     });
     const near = selectedProvinceId && camDist < 7;
     siteLabels.forEach(s => placeLabel(s.el, s.anchor, near && s.provId === selectedProvinceId));

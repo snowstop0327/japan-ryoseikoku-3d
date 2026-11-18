@@ -506,6 +506,13 @@
         <div class="text-[10px] font-bold text-stone-600 bg-white/70 rounded-full px-2.5 py-0.5 shadow-sm">按住 Shift 拖拉可切換移動／旋轉・滾輪或雙指縮放</div>
     </div>
 
+    <!-- ================= 名山・湖泊・河川介紹卡（內容由 16b-geo-card.js 產生） ================= -->
+    <aside id="geo-card" class="fixed top-36 side-card bottom-5 left-4 z-30 w-[92vw] sm:w-[380px] cream-card rounded-3xl flex flex-col overflow-hidden transition-all duration-300 -translate-x-[120%] opacity-0 pointer-events-none">
+        <div id="geo-card-scroll" class="flex-1 overflow-y-auto p-5">
+            <div id="geo-body" class="space-y-3"></div>
+        </div>
+    </aside>
+
     <!-- ================= 代參犬任務卡 ================= -->
     <aside id="dog-card" class="fixed top-36 side-card bottom-5 left-4 z-30 w-[92vw] sm:w-[380px] cream-card rounded-3xl flex flex-col overflow-hidden transition-all duration-300 -translate-x-[120%] opacity-0 pointer-events-none">
         <div class="flex-1 overflow-y-auto p-5 space-y-3 text-sm">
@@ -724,6 +731,7 @@
     <script defer src="js/02-data-sites.js"></script>
     <script defer src="js/02b-site-readings.js"></script>
     <script defer src="js/02c-site-crests.js"></script>
+    <script defer src="js/02d-geo-places.js"></script>
     <script defer src="js/03-state.js"></script>
     <script defer src="js/04-scene.js"></script>
     <script defer src="js/05-seasons.js"></script>
@@ -739,6 +747,7 @@
     <script defer src="js/14b-dog-encounters.js"></script>
     <script defer src="js/15-interaction.js"></script>
     <script defer src="js/16-ui.js"></script>
+    <script defer src="js/16b-geo-card.js"></script>
     <script defer src="js/17-traveler-card.js"></script>
     <script defer src="js/18-toggles.js"></script>
     <script defer src="js/19-search-stamps.js"></script>

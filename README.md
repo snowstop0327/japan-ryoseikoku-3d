@@ -46,6 +46,7 @@ public/js/              主程式，依檔名順序載入、共用全域範圍
   02-data-sites.js        各國神社、城郭與名社資料
   02b-site-readings.js    神社與城的日文讀音（朗讀用）
   02c-site-crests.js      神紋・家紋對照（圖檔在 public/kamon/，來源見該資料夾 CREDITS.md）
+  02d-geo-places.js       名山・湖泊・河川的介紹資料
   03-state.js             狀態與御朱印儲存
   04-scene.js             場景、海與島嶼
   05-seasons.js           四季配色、河川湖泊
@@ -61,6 +62,7 @@ public/js/              主程式，依檔名順序載入、共用全域範圍
   14b-dog-encounters.js   代參犬的途中遭遇（選擇＋3D 小劇場）
   15-interaction.js       點擊、鏡頭、動畫迴圈
   16-ui.js                索引、介紹卡、維基百科照片
+  16b-geo-card.js         名山・湖泊・河川介紹卡
   17-traveler-card.js     旅人介紹卡
   18-toggles.js           工具列開關、視角控制
   19-search-stamps.js     搜尋、御朱印帳、彈窗

@@ -50,14 +50,39 @@ const thunderClouds = [];
 const weatherClouds = [];
 const weatherLabels = {};
 
+// Open-Meteo 偶爾很慢或連不上：每次最多等 12 秒、失敗自動再試一次；
+// 成功的資料存在這台瀏覽器，之後連不上時先拿 6 小時內的舊資料來用
+const WEATHER_CACHE_KEY = 'ryoseikoku_weather_cache_v1';   // 不用 shinkoku_ 開頭，備份時才不會帶到
+let weatherStaleAt = 0;                                    // 正在用舊資料時，記下那份資料的取得時間
+async function fetchJsonTimeout(url, ms) {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), ms);
+    try {
+        const res = await fetch(url, { signal: ac.signal });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+    } finally {
+        clearTimeout(timer);
+    }
+}
 async function fetchWeather() {
     const ids = PROVINCES_DATA.map(p => p.id).filter(id => PROV_LATLON[id]);
     const lat = ids.map(id => PROV_LATLON[id][0]).join(',');
     const lon = ids.map(id => PROV_LATLON[id][1]).join(',');
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,precipitation,cloud_cover,wind_speed_10m,is_day&wind_speed_unit=ms&timezone=Asia%2FTokyo`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const json = await res.json();
+    let json;
+    try {
+        json = await fetchJsonTimeout(url, 12000).catch(() => new Promise(r => setTimeout(r, 1500)).then(() => fetchJsonTimeout(url, 15000)));
+    } catch (e) {
+        let cache = null;
+        try { cache = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY) || 'null'); } catch (err) {}
+        if (!cache || Date.now() - cache.at > 6 * 3600 * 1000) throw e;
+        weatherData = cache.data;
+        weatherTime = cache.time;
+        weatherStaleAt = cache.at;
+        weatherFetchedAt = Date.now() - 8 * 60 * 1000;   // 兩分鐘後可以再試
+        return;
+    }
     const list = Array.isArray(json) ? json : [json];
     weatherData = {};
     list.forEach((item, i) => {
@@ -70,6 +95,8 @@ async function fetchWeather() {
         weatherTime = (cur.time || '').slice(11, 16);
     });
     weatherFetchedAt = Date.now();
+    weatherStaleAt = 0;
+    try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ at: weatherFetchedAt, time: weatherTime, data: weatherData })); } catch (e) {}
 }
 
 async function toggleWeather() {
@@ -100,10 +127,11 @@ async function refreshWeather(announce) {
         if (seasonParticles) seasonParticles.visible = false; // 天氣模式下改由實際降雨／降雪呈現
         const raining = Object.values(weatherData).filter(w => ['rain', 'drizzle', 'thunder'].includes(wmoInfo(w.code).kind)).length;
         const snowing = Object.values(weatherData).filter(w => wmoInfo(w.code).kind === 'snow').length;
-        if (announce) showToast(`即時天氣已更新（日本時間 ${weatherTime}）：${raining} 國下雨、${snowing} 國下雪`);
+        if (announce && weatherStaleAt) showToast(`天氣服務暫時連不上，先顯示 ${Math.max(1, Math.round((Date.now() - weatherStaleAt) / 60000))} 分鐘前的天氣（日本時間 ${weatherTime}）`);
+        else if (announce) showToast(`即時天氣已更新（日本時間 ${weatherTime}）：${raining} 國下雨、${snowing} 國下雪`);
         if (selectedProvinceId) renderDetailWeather(getProv(selectedProvinceId));
     } catch (e) {
-        showToast('目前無法取得天氣資料，請稍後再試');
+        showToast('天氣服務（Open-Meteo）暫時連不上，請過幾分鐘再試');
         weatherOn = false;
         setToolbarBtn('btn-weather', false);
     }
